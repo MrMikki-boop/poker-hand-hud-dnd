@@ -1,0 +1,26 @@
+<div class="{{moduleId}} {{#if hasBorder}}has-border{{/if}}" style="--rgb-card-glint--edge: {{#if glintColor}}{{glintColor}}{{else}}transparent{{/if}}; --px-card-border-width: {{borderWidth}};">
+    <div class="{{moduleId}}-stage decks-draw__stg ve-flex-vh-center decks-draw__stg--visible">
+        {{#if showShareBtn}}<button class="{{moduleId}}-share-btn" data-tooltip="Show to Players"><i class="fas fa-eye"></i></button>{{/if}}
+        <div class="{{moduleId}}-safe-viewing-area ve-flex-vh-center no-select relative">
+            <div class="{{moduleId}}-cards-display ve-flex-vh-center no-select relative">
+                <div class="{{moduleId}}-card-animation-container decks-draw__wrp-card-sway no-select relative">
+                    {{#each images as |image index|}}
+                    <div class="{{../moduleId}}-arc-container ve-flex-vh-center decks-draw__wrp-card-arc relative">
+                        <div class="{{../moduleId}}-perspective-container ve-flex-vh-center decks-draw__wrp-card-perspective relative">
+                            <div class="{{../moduleId}}-flip-container ve-flex-vh-center decks-draw__wrp-card-flip {{#if (or ../faceDown ../dramaticReveal)}}decks-draw__wrp-card-flip--flipped{{/if}}">
+                                <div class="{{../moduleId}}-card-container decks-draw__wrp-card relative decks-draw__wrp-card--visible {{#if image.back}}{{../moduleId}}-flip-button{{/if}}">
+                                    {{#if image.back}}
+                                    <img src="{{image.back}}" class="decks-draw__img-card-back absolute">
+                                    {{/if}}
+                                    <img src="{{image.front}}" class="decks-draw__img-card">
+                                    <div class="decks-draw__disp-glint no-events no-select absolute"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

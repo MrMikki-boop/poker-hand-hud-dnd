@@ -1,0 +1,241 @@
+{
+  "POKER_HUD": {
+    "Settings": {
+      "Enabled": {
+        "Name": "Enable Poker Hand HUD",
+        "Hint": "Enable or disable poker hand HUD for cards"
+      },
+      "HandAssignments": {
+        "Name": "Hand Assignments",
+        "Hint": "Stores hand assignments for users"
+      },
+      "ClientOptOut": {
+        "Name": "Opt Out (Local)",
+        "Hint": "Disable HUD for yourself locally"
+      },
+      "CardSelectionCloseDelay": {
+        "Name": "Card Selection Close Delay (seconds)",
+        "Hint": "Number of seconds to wait before closing the card selection dialog after choosing a card"
+      },
+      "CardSelectionScale": {
+        "Name": "Card Selection Scale Factor",
+        "Hint": "Scale factor for the selected card in the card selection dialog (1.0 = normal size, 1.5 = 50% larger)"
+      },
+      "HudCardScale": {
+        "Name": "HUD Card Scale Factor",
+        "Hint": "Scale factor for cards in the HUD when clicked with left mouse button (1.0 = normal size, 1.5 = 50% larger)"
+      },
+      "HudBgColor": {
+        "Name": "HUD Background Color"
+      },
+      "AccentColor": {
+        "Name": "Accent Color"
+      },
+      "LabelColor": {
+        "Name": "Label Color"
+      },
+      "TextColor": {
+        "Name": "Text Color"
+      },
+      "SelectedGlowColor": {
+        "Name": "Selected Glow Color"
+      },
+      "HandMaxVisible": {
+        "Name": "Max Visible Cards in Hand"
+      },
+      "HandSpacing": {
+        "Name": "Card Spacing"
+      },
+      "HandArc": {
+        "Name": "Hand Arc Height"
+      },
+      "HandRotation": {
+        "Name": "Card Rotation Factor"
+      },
+      "BookmarkEnabled": {
+        "Name": "Show Bookmark Toggle Button",
+        "Hint": "Show/hide the bookmark toggle button for HUD. When disabled, use Ctrl+T hotkey to toggle HUD."
+      },
+      "BookmarkTopPercent": {
+        "Name": "Bookmark Vertical Position (% Screen Height)"
+      },
+      "SparkleStyle": {
+        "Name": "Sparkle Style (Local)",
+        "Choices": {
+          "None": "None",
+          "Cards": "Card Suits",
+          "Gold": "Gold Sparks",
+          "Embers": "Fire Embers"
+        }
+      },
+      "SparkleIntensity": {
+        "Name": "Sparkle Intensity (Local)",
+        "Choices": {
+          "Low": "Low",
+          "Medium": "Medium",
+          "High": "High"
+        }
+      },
+      "CollapseEnabled": {
+        "Name": "Enable Global Collapse (Local)",
+        "Hint": "Allow collapsing the entire HUD with a toggle button"
+      },
+      "SleepHudOnly": {
+        "Name": "On Sleep, Collapse HUD Only",
+        "Hint": "When collapsed, only affect HUD not cards"
+      },
+      "HandRetractDelay": {
+        "Name": "Hand Retract Delay (ms)",
+        "Hint": "Delay before hand retracts when mouse leaves"
+      },
+      "SfxEnabled": {
+        "Name": "Enable SFX (Local)"
+      },
+      "SfxVolume": {
+        "Name": "SFX Volume (0-1)"
+      },
+      "EnableDisplayOnUse": {
+        "Name": "Display Card on Use",
+        "Hint": "When a player uses a card from the HUD, automatically display it to all other players with a dramatic reveal."
+      },
+      "SfxHoverUrl": {
+        "Name": "Hover SFX URL"
+      },
+      "SfxClickUrl": {
+        "Name": "Click/Select SFX URL"
+      },
+      "SfxUseUrl": {
+        "Name": "Use Card SFX URL"
+      },
+      "RemoveCardAfterUse": {
+        "Name": "Return Card to Deck After Use",
+        "Hint": "Automatically return card to discard pile after sending to chat (uses Foundry VTT pass method)"
+      },
+      "ReturnToMainDeck": {
+        "Name": "Return Card Directly to Main Deck",
+        "Hint": "Return card directly to main deck instead of discard pile (bypasses discard)"
+      },
+      "CardBaseImageUrl": {
+        "Name": "Card UI Background URL (World)",
+        "Hint": "Leave empty to use default CSS style."
+      },
+      "CardMaskImageUrl": {
+        "Name": "Card Art Mask URL (World)",
+        "Hint": "Provides a shape mask for card art. Leave empty for default gradient effect."
+      },
+      "CardBackImageUrl": {
+        "Name": "Custom Card Back URL (World)",
+        "Hint": "Leave empty to use default CSS card back."
+      },
+      "ClientBackCustomUrl": {
+        "Name": "Custom Card Back URL (Local)",
+        "Hint": "Leave empty to use world setting. If world setting is also empty, the default CSS card back will be shown."
+      },
+      "TiltMax": {
+        "Name": "Card Tilt Max"
+      },
+      "DisableTilt": {
+        "Name": "Disable Card Tilt (Local)",
+        "Hint": "Disable tilt effect when hovering over non-expanded cards. Cards will still lift up but won't tilt."
+      },
+      "DisableGradientMask": {
+        "Name": "Disable Card Gradient Mask (Local)",
+        "Hint": "Disable gradient fade effect on card art. Cards will show full art without bottom fade."
+      },
+      "AlwaysShowShadow": {
+        "Name": "Always Show Card Shadow (Local)",
+        "Hint": "Show shadow on cards permanently instead of only on hover. Shadow will be applied to all cards."
+      },
+      "HoverScale": {
+        "Name": "Hover Scale"
+      },
+      "HoverLift": {
+        "Name": "Hover Lift (px, negative is up)"
+      },
+      "EnableUserHandAssignment": {
+        "Name": "Enable User Hand Assignment",
+        "Hint": "Allow automatic assignment of specific hands to users based on naming conventions"
+      },
+      "HandAssignmentMode": {
+        "Name": "Hand Assignment Mode",
+        "Hint": "How hands are assigned to users",
+        "Choices": {
+          "Manual": "Manual Assignment Only",
+          "Smart": "Smart Detection (name + flags)",
+          "Name": "By Hand Name Only",
+          "Flags": "By Flags Only",
+          "First": "First Available (Legacy)"
+        }
+      },
+      "GmHandPrefix": {
+        "Name": "GM Hand Prefix",
+        "Hint": "Prefix to identify GM-specific hands (e.g., 'GM Hand', 'Master')"
+      },
+      "DealCardsFaceDown": {
+        "Name": "Deal Cards Face Down to Players",
+        "Hint": "When enabled, cards dealt to players will be shown face down (back side) in the selection dialog"
+      },
+      "CardBackStyle": {
+        "Name": "Default Card Back Style",
+        "Hint": "Choose which card back to use when cards don't have their own back image",
+        "Choices": {
+          "Dark": "Dark Gold",
+          "Light": "Light Soft"
+        }
+      },
+      "EnableFancyDisplay": {
+        "Name": "Enable Fancy Card Display",
+        "Hint": "Enable enhanced card viewing with 3D animations and effects"
+      },
+      "DefaultCardBackImage": {
+        "Name": "Default Card Back Image",
+        "Hint": "Default image to use for card backs when none is specified"
+      },
+      "DefaultCardBorderWidth": {
+        "Name": "Default Card Border Width",
+        "Hint": "Default border width for fancy card display"
+      },
+      "DefaultCardBorderColor": {
+        "Name": "Default Card Border Color",
+        "Hint": "Default border color for fancy card display"
+      },
+      "DefaultCardGlowColor": {
+        "Name": "Default Card Glow Color",
+        "Hint": "Default glow color for fancy card display"
+      },
+      "EnableDramaticRevealOnDraw": {
+        "Name": "Enable Dramatic Reveal on Draw",
+        "Hint": "Show cards face-down then flip them dramatically when drawn"
+      },
+      "DramaticRevealDelay": {
+        "Name": "Dramatic Reveal Delay (ms)",
+        "Hint": "Delay before dramatic card flip animation begins"
+      },
+      "WhatDeterminesCardFaceOnDraw": {
+        "Name": "Card Face Logic on Draw",
+        "Hint": "How to determine if cards are face-up or face-down when drawn",
+        "Choices": {
+          "Source": "Use Source Card State",
+          "AlwaysUp": "Always Face Up",
+          "AlwaysDown": "Always Face Down"
+        }
+      },
+      "EnableDisplayOnDraw": {
+        "Name": "Enable Display on Draw",
+        "Hint": "Automatically show fancy display when cards are drawn"
+      },
+      "EnableWhisperCardTextToDM": {
+        "Name": "Whisper Card Text to DM",
+        "Hint": "Send card details to GM via chat when displayed"
+      },
+      "PlayersCanShareToAll": {
+        "Name": "Players Can Share to All",
+        "Hint": "Allow non-GM players to share card displays with everyone"
+      },
+      "EnableCardIconClick": {
+        "Name": "Enable Card Icon Click",
+        "Hint": "Click on card images in decks and chat to view with fancy display"
+      }
+    }
+  }
+}

@@ -1,0 +1,797 @@
+/* ===== FANCY DISPLAY STYLES ===== */
+/* Adapted from orcnog-card-viewer module */
+
+/* Card Viewer Container */
+.poker-hand-hud-dnd {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+}
+
+.poker-hand-hud-dnd * {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+}
+
+.poker-hand-hud-dnd ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+.poker-hand-hud-dnd ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.poker-hand-hud-dnd ::-webkit-scrollbar-thumb {
+    background: #475b6b;
+}
+
+.poker-hand-hud-dnd ::after,
+.poker-hand-hud-dnd ::before {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.poker-hand-hud-dnd .poker-hand-hud-dnd-safe-viewing-area {
+    max-width: 75vw;
+    max-height: 85vh;
+    width: 100%;
+    height: 100%;
+}
+
+.poker-hand-hud-dnd .poker-hand-hud-dnd-card-animation-container {
+    display: flex;
+    column-gap: 1%;
+    animation-name: anim-sway;
+    animation-duration: 7s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+.poker-hand-hud-dnd .poker-hand-hud-dnd-card-container {
+    display: flex;
+}
+
+.poker-hand-hud-dnd .poker-hand-hud-dnd-share-btn {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    border: 0;
+    width: auto;
+    font-size: 1.5rem;
+    color: #000;
+    background: transparent;
+    opacity: 1;
+    transition: opacity 1s ease-in-out;
+}
+
+.poker-hand-hud-dnd .poker-hand-hud-dnd-share-btn::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0%;
+    height: 0%;
+    border-radius: 50%;
+    box-shadow: 0 0 3rem 2rem rgb(255 255 185 / 50%);
+    z-index: -1;
+    animation: pulse 5s infinite linear;
+}
+      
+.poker-hand-hud-dnd .poker-hand-hud-dnd-share-btn[disabled] {
+    opacity: 0;
+}
+
+.poker-hand-hud-dnd .poker-hand-hud-dnd-share-btn i {
+    animation:
+        float-up-down 7s infinite ease-in-out alternate,
+        float-side-to-side 11s infinite ease-in-out alternate,
+        rotate-a-little 5s infinite ease-in-out alternate;
+}
+
+.poker-hand-hud-dnd img {
+    border: 0;
+    vertical-align: middle;
+}
+
+.poker-hand-hud-dnd .no-events {
+    pointer-events: none !important;
+}
+
+.poker-hand-hud-dnd .no-select {
+    user-select: none !important;
+}
+
+.poker-hand-hud-dnd .relative {
+    position: relative !important;
+}
+
+.poker-hand-hud-dnd .absolute {
+    position: absolute !important;
+}
+
+.poker-hand-hud-dnd .ve-flex-col {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.poker-hand-hud-dnd .ve-flex-v-center {
+    display: flex !important;
+    align-items: center !important;
+}
+
+.poker-hand-hud-dnd .ve-flex-vh-center {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+@media only screen and (max-width: 768px) {
+    .poker-hand-hud-dnd .mobile__ve-flex-col {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+}
+
+.poker-hand-hud-dnd .decks-draw__stg {
+    position: fixed;
+    position: relative;
+    z-index: 9500;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    width: 100%;
+    height: 100%;
+}
+
+.poker-hand-hud-dnd .decks-draw__stg--visible {
+    box-shadow: inset 0 0 100vh 100vh rgb(0 0 0 / 88%);
+    transition: box-shadow 500ms;
+}
+
+.poker-hand-hud-dnd .decks-draw__stg--closing {
+    box-shadow: inset 0 0 100vh 100vh rgb(0 0 0 / 0%);
+    transition: box-shadow 500ms;
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-sparkle-sway {
+    z-index: -1;
+}
+
+.poker-hand-hud-dnd .decks-draw__img-sparkle {
+    max-width: 67%;
+    max-height: 67%;
+    top: -25%;
+    left: -25%;
+    opacity: 0;
+    animation-name: anim-sparkle-twinkle, anim-sparkle-warp;
+    animation-timing-function: linear, linear;
+    animation-iteration-count: infinite, infinite;
+}
+
+.poker-hand-hud-dnd .decks-draw__img-sparkle--visible {
+    opacity: 1;
+    transition: opacity 250ms;
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card {
+    padding: 0;
+    border-radius: 3%;
+    scale: 0;
+    color: rgb(255 255 255 / 53%);
+}
+
+.poker-hand-hud-dnd.has-border .decks-draw__wrp-card {
+    padding: var(--px-card-border-width);
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card:hover {
+    cursor: none;
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card--visible {
+    animation-name: anim-card-pop-in;
+    animation-duration: 335ms;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: 1;
+    scale: 1;
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card--closing {
+    animation-name: anim-card-pop-out;
+    animation-duration: 335ms;
+    animation-timing-function: ease-in-out;
+}
+
+.poker-hand-hud-dnd .decks-draw__img-card {
+    z-index: 0;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+    max-height: calc(85vh - 2 * var(--px-card-border-width));
+}
+
+.poker-hand-hud-dnd .decks-draw__img-card-back {
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotateY(180deg);
+    transition: z-index 750ms;
+}
+
+.poker-hand-hud-dnd.has-border .decks-draw__img-card,
+.poker-hand-hud-dnd.has-border .decks-draw__img-card-back {
+    border-radius: 2%;
+}
+
+.poker-hand-hud-dnd.has-border .decks-draw__img-card-back {
+    width: calc(100% - (var(--px-card-border-width) * 2));
+    height: calc(100% - (var(--px-card-border-width) * 2));
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card-flip {
+    transition: transform 750ms;
+}
+
+.poker-hand-hud-dnd .decks-draw__disp-glint {
+    z-index: 2;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 1rem;
+    transition: transform 750ms;
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card-flip--flipped {
+    transform: rotateY(180deg);
+    transition: transform 750ms;
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card-flip--flipped .decks-draw__img-card-back {
+    z-index: 1;
+}
+
+.poker-hand-hud-dnd .decks-draw__wrp-card-flip--flipped .decks-draw__disp-glint {
+    transform: rotateY(180deg);
+}
+
+/* Chat Message Styles - orcnog-card-viewer format */
+.chat-sidebar .poker-hand-hud-dnd-msg img.card-face,
+.cards-config .card img.card-face,
+.cards-config .cards img.face {
+    cursor: pointer;
+}
+
+/* Card Draw Message Styles */
+.card-draw.poker-hand-hud-dnd-msg {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.card-draw.poker-hand-hud-dnd-msg img.card-face {
+    width: 60px;
+    height: 84px;
+    object-fit: contain;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.card-draw.poker-hand-hud-dnd-msg h4.card-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: bold;
+    color: #4a90e2;
+}
+
+.card-draw.poker-hand-hud-dnd-msg + p {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Share Button Animations */
+@keyframes pulse {
+    0%, 100% {box-shadow: 0 0 3rem 2rem rgb(255 255 185 / 50%);}
+    50% {box-shadow: 0 0 4rem 2rem rgb(255 255 255 / 30%);}
+}
+
+@keyframes float-up-down {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -10px, 0); }
+}
+  
+@keyframes float-side-to-side {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(10px, 0, 0); }
+}
+  
+@keyframes rotate-a-little {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+}
+
+/* Card and Twinkles Animations */
+@keyframes anim-sway {
+    0%, 100% {transform: translateX(0) translateY(0);}
+    25% {transform: translateX(1rem) translateY(1rem);}
+    37.5% {transform: translateX(1.15rem) translateY(0.5rem);}
+    50% {transform: translateX(1rem) translateY(0);}
+    75% {transform: translateX(0) translateY(1rem);}
+    87.5% {transform: translateX(-0.15rem) translateY(0.5rem);}
+}
+
+@keyframes anim-sparkle-twinkle {
+    0%, 100% {filter: initial;}
+    25% {filter: blur(1px) brightness(90%) contrast(150%) drop-shadow(0 0 17px #f6f6f6) hue-rotate(5deg) opacity(75%) saturate(80%);}
+    50% {filter: blur(1px) brightness(110%) contrast(75%) drop-shadow(0 0 5px white) hue-rotate(-5deg) opacity(75%) saturate(110%);}
+}
+
+@keyframes anim-sparkle-warp {
+    0% {transform: rotateX(0) rotateY(0) rotateZ(0);}
+    25% {transform: rotateX(20deg) rotateY(0) rotateZ(90deg);}
+    50% {transform: rotateX(0) rotateY(20deg) rotateZ(180deg);}
+    75% {transform: rotateX(10deg) rotateY(0) rotateZ(270deg);}
+    100% {transform: rotateX(0) rotateY(0) rotateZ(360deg);}
+}
+
+@keyframes anim-card-pop-in {
+    0% {scale: 0;}
+    65% {scale: 1.2;}
+    100% {scale: 1;}
+}
+
+@keyframes anim-card-pop-out {
+    0% {scale: 1;}
+    35% {scale: 1.1;}
+    100% {scale: 0;}
+}
+
+/* Base container styles */
+.poker-hand-container {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 3500;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+    height: 135px;
+    transition: bottom 0.45s cubic-bezier(.2,1,.2,1);
+    overflow: visible;
+}
+
+.poker-hand-container.collapsed {
+    bottom: -9999px !important;
+    pointer-events: none;
+}
+
+/* Bookmark toggle */
+#hud-bookmark-toggle {
+    position: fixed;
+    left: 0;
+    top: var(--bookmark-top, 33vh);
+    transform: translateY(-50%);
+    width: 32px;
+    height: 120px;
+    border-radius: 0 8px 8px 0;
+    background: linear-gradient(180deg, rgba(60,45,30,0.95), rgba(30,20,10,0.95));
+    border: 1px solid rgba(192,160,96,0.55);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 0 10px rgba(192,160,96,0.15);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    color: #f0e6d2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+#hud-bookmark-toggle .tab-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    opacity: .9;
+}
+
+#hud-bookmark-toggle .chev {
+    position: absolute;
+    bottom: 6px;
+    font-size: 12px;
+    opacity: .8;
+}
+
+#hud-bookmark-toggle.collapsed .chev {
+    transform: rotate(180deg);
+}
+
+/* Hand area */
+.hand-area {
+    background: rgba(20, 15, 10, 0.85);
+    border: 2px solid #c0a060;
+    border-radius: 15px;
+    padding: 20px;
+    min-width: 800px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+/* Cards container */
+.cards-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Individual card styles */
+.poker-card {
+    width: 220px;
+    height: 330px;
+    position: absolute;
+    transition: transform 0.22s cubic-bezier(.2,.8,.2,1), opacity .2s ease, filter .2s ease;
+    pointer-events: auto;
+    cursor: pointer;
+    filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.5)) brightness(1.08) contrast(1.1) saturate(1.05);
+    overflow: hidden;
+    will-change: transform, filter;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transform-origin: center center;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    background: radial-gradient(circle, #4a4a5a, #2a2a3a), repeating-linear-gradient(-45deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 2px, transparent 2px, transparent 6px);
+    border: 1px solid rgba(200, 200, 255, 0.2);
+    border-radius: 11px;
+    box-sizing: border-box;
+}
+
+/* Note: hover effects are handled by JavaScript attachHoverEvents function to prevent conflicts */
+
+/* Card components */
+.card-back {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    opacity: 0;
+    transform: scale(0.985);
+    transition: opacity .22s ease, transform .22s ease;
+    pointer-events: none;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    border: 3px solid #1a252f;
+    border-radius: 11px;
+}
+
+.card-art {
+    position: absolute;
+    z-index: 2;
+    background-color: rgba(0,0,0,0.5);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity .22s ease, transform .22s ease;
+    /* Optimized image rendering for quality */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: auto;
+    /* Subpixel rendering optimization */
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.card-text-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity .22s ease, transform .22s ease;
+}
+
+.poker-card.face-down .card-back {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.poker-card.face-down .card-art,
+.poker-card.face-down .card-text-overlay {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+}
+
+/* Shine effect */
+.poker-card .shine {
+    position: absolute;
+    inset: -20% -30%;
+    z-index: 4;
+    pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 48%, rgba(255,255,255,0) 60%);
+    transform: translateX(-160%) skewX(-12deg);
+    opacity: 0;
+    mix-blend-mode: overlay;
+}
+
+.poker-card:hover .shine {
+    animation: phh-shine 0.9s ease-out forwards;
+}
+
+@keyframes phh-shine {
+    0% { transform: translateX(-160%) skewX(-12deg); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translateX(160%) skewX(-12deg); opacity: 0; }
+}
+
+/* Card text styling */
+.card-level {
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    font-family: "Modesto Condensed","Signika",sans-serif;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1.5px 0 0 black, -1.5px 0 0 black, 0 1.5px 0 black, 0 -1.5px 0 black;
+}
+
+.card-name-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-name-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.card-name-svg .text-path {
+    font-family: "Signika", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    fill: white;
+    stroke: black;
+    stroke-width: 0.3px;
+}
+
+/* Selection indicators */
+.poker-card .select-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,200,100,0.6);
+    color: #111;
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+    box-shadow: 0 0 6px rgba(255,200,100,0.8), 0 0 16px rgba(255,200,100,0.5);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all .15s ease;
+    pointer-events: none;
+    z-index: 6;
+}
+
+.poker-card .select-underline {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(255,200,100,0.2), rgba(255,200,100,0.6), rgba(255,200,100,0.2));
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all .18s ease;
+    z-index: 6;
+}
+
+.poker-card.selectable.selected .select-badge {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.poker-card.selectable.selected .select-underline {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Sparkle effects */
+.sparkle-layer {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 1100px;
+    height: 260px;
+    pointer-events: none;
+    z-index: 1;
+    overflow: visible;
+}
+
+.sparkle {
+    position: absolute;
+    opacity: 0;
+    filter: saturate(1.1);
+    animation: spark-float-fade var(--dur,1.8s) ease-out forwards;
+    mix-blend-mode: screen;
+}
+
+.sparkle.text {
+    width: auto !important;
+    height: auto !important;
+    background: none !important;
+    border-radius: 0 !important;
+    line-height: 1;
+    white-space: pre;
+}
+
+.sparkle.runes {
+    font-weight: 700;
+}
+
+.sparkle.petals {
+    filter: saturate(1.2);
+}
+
+.sparkle.butterflies {
+    filter: saturate(1.3);
+}
+
+.sparkle.notes {
+    font-weight: 700;
+}
+
+.sparkle.cards {
+    font-weight: 900;
+}
+
+@keyframes spark-float-fade {
+    0% { opacity: 0; transform: translateX(var(--dx,0px)) translateY(18px) rotate(var(--rot,0deg)) scale(var(--sc,0.9)); }
+    10% { opacity: 1; }
+    80% { opacity: 0.95; }
+    100% { opacity: 0; transform: translateX(var(--dx,0px)) translateY(-42px) rotate(var(--rot,0deg)) scale(var(--sc,1.1)); }
+}
+
+/* Tooltip styles */
+.poker-card-tooltip {
+    position: fixed;
+    width: 340px;
+    max-height: 60vh;
+    background-color: rgba(10,5,0,0.92);
+    border: 2px solid #c0a060;
+    color: #f0e6d2;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.6);
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+    font-family: "Signika", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: auto;
+}
+
+/* No cards message */
+.no-cards {
+    color: #f0e6d2;
+    font-family: 'Signika', sans-serif;
+    font-size: 16px;
+    text-align: center;
+    padding: 40px;
+    opacity: 0.7;
+}
+
+/* Loading state */
+.poker-card.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.poker-card.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border: 3px solid transparent;
+    border-top-color: #c0a060;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .poker-card {
+        width: 180px;
+        height: 270px;
+    }
+    
+    .hand-area {
+        min-width: 600px;
+        padding: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .poker-hand-container {
+        left: 10px;
+        transform: none;
+    }
+    
+    .poker-card {
+        width: 140px;
+        height: 210px;
+    }
+    
+    .hand-area {
+        min-width: 450px;
+        padding: 10px;
+    }
+    
+    #hud-bookmark-toggle {
+        width: 35px;
+        height: 50px;
+        left: -50px;
+        font-size: 16px;
+    }
+}
+
+/* Card hover effects */
+.poker-card:hover {
+    z-index: 100;
+}
+
+.poker-card.selected {
+    box-shadow: 0 0 25px rgba(255, 200, 100, 0.8);
+    transform: translateX(var(--x-offset, 0px)) translateY(calc(var(--y-offset, 0px) - 10px)) rotate(var(--rotation, 0deg)) scale(1.05);
+}
