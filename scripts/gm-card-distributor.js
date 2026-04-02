@@ -1,1645 +1,637 @@
-/* ===== POKER HAND HUD/* ===== GM CARD DISTRIBUTOR ===== */
+/* ===== GM CARD DISTRIBUTOR ===== */
 /**
- * @fileoverview GM Card Distribution System
- * @author Poker Hand HUD Team
- * @version 2.0.0
+ * @fileoverview GM Card Distributor system for Poker Hand HUD
+ * @version 2.6.0
+ *
+ * CHANGES v2.6:
+ *  - Убран overflow:hidden с контейнера диалога (обрезал нативный select)
+ *  - closeDelay теперь стартует СРАЗУ при клике, а не после query (~10 сек → 3 сек)
+ *  - Уменьшен default closeDelay с 8 до 3 секунд
  */
-
-console.log(`GM Card Distributor file loaded`);
 
 import { MODULE_ID } from './constants.js';
 import { Utils } from './utils.js';
 import { SFX } from './sound-effects.js';
 import { HandAssignmentSystem } from './hand-assignment-system.js';
 
-console.log(`[${MODULE_ID}] GM Card Distributor initialized`);
-console.log(`[${MODULE_ID}] MODULE_ID value:`, MODULE_ID);
-
-/**
- * Система раздачи карт для ГМа с интеграцией Foundry Cards
- * @class GMCardDistributor
- */
 class GMCardDistributor {
     constructor() {
         this.selectedPlayers = new Set();
-        this.selectedDeck = null;
-        this.availableDecks = [];
+        this.selectedDeck    = null;
+        this.availableDecks  = [];
     }
 
-    /**
-     * Получает рубашку карты с правильным приоритетом
-     * @param {CardDocument} card - Карта
-     * @param {string} cardBackStyle - Стиль рубашки ('dark' или 'light')
-     * @returns {string|null} URL рубашки карты
-     */
-    static getCardBack(card, cardBackStyle = 'dark') {
-        console.log(`[${MODULE_ID}] Getting card back for "${card.name}":`, {
-            card: card,
-            cardType: card.type,
-            cardId: card.id,
-            back: card.back,
-            faces: card.faces,
-            facesBack: card.faces?.back,
-            facesBackSrc: card.faces?.back?.src,
-            system: card.system,
-            systemBack: card.system?.back,
-            texture: card.texture,
-            textureBack: card.texture?.back,
-            document: card.document,
-            documentFaces: card.document?.faces,
-            documentFacesBack: card.document?.faces?.back,
-            toObject: card.toObject,
-            toObjectResult: card.toObject ? card.toObject() : null,
-            parent: card.parent,
-            parentImg: card.parent?.img,
-            parentType: card.parent?.type,
-            // Проверяем другие возможные свойства
-            img: card.img,
-            src: card.src,
-            data: card.data,
-            _source: card._source,
-            flags: card.flags,
-            // Все ключи объекта
-            allKeys: Object.keys(card),
-            // Проверяем вложенные объекты
-            prototype: Object.getPrototypeOf(card)
-        });
-        
-        // 1. Собственная рубашка карты
-        if (card.back && typeof card.back === 'object') {
-            console.log(`[${MODULE_ID}] Using card.back object:`, card.back);
-            // Если back это объект, пробуем получить img из него
-            if (card.back.img) {
-                console.log(`[${MODULE_ID}] Using card.back.img:`, card.back.img);
-                return card.back.img;
-            }
-            // Пробуем другие свойства объекта back
-            if (card.back.src) {
-                console.log(`[${MODULE_ID}] Using card.back.src:`, card.back.src);
-                return card.back.src;
-            }
-            if (card.back.text && card.back.text.includes('drama-cards')) {
-                console.log(`[${MODULE_ID}] Using card.back.text path:`, card.back.text);
-                return card.back.text;
-            }
-        } else if (card.back && typeof card.back === 'string') {
-            console.log(`[${MODULE_ID}] Using card.back string:`, card.back);
-            return card.back;
-        }
-        
-        // 2. Рубашка в faces
-        if (card.faces && card.faces.back && card.faces.back.src) {
-            console.log(`[${MODULE_ID}] Using card.faces.back.src:`, card.faces.back.src);
-            return card.faces.back.src;
-        }
-        
-        // 3. Рубашка в system
-        if (card.system && card.system.back) {
-            console.log(`[${MODULE_ID}] Using card.system.back:`, card.system.back);
-            return card.system.back;
-        }
-        
-        // 4. Рубашка в texture
-        if (card.texture && card.texture.back) {
-            console.log(`[${MODULE_ID}] Using card.texture.back:`, card.texture.back);
-            return card.texture.back;
-        }
-        
-        // 5. Рубашка в document.faces
-        if (card.document && card.document.faces && card.document.faces.back) {
-            const back = card.document.faces.back.src || card.document.faces.back;
-            console.log(`[${MODULE_ID}] Using card.document.faces.back:`, back);
-            return back;
-        }
-        
-        // 6. Рубашка в toObject().faces
-        if (card.toObject && card.toObject().faces && card.toObject().faces.back) {
-            const cardObj = card.toObject();
-            const back = cardObj.faces.back.src || cardObj.faces.back;
-            console.log(`[${MODULE_ID}] Using toObject().faces.back:`, back);
-            return back;
-        }
-        
-        // 7. Проверяем data._source или другие возможные места
-        if (card.data && card.data._source && card.data._source.back) {
-            console.log(`[${MODULE_ID}] Using card.data._source.back:`, card.data._source.back);
-            return card.data._source.back;
-        }
-        
-        // 8. Проверяем _source.back
-        if (card._source && card._source.back) {
-            console.log(`[${MODULE_ID}] Using card._source.back:`, card._source.back);
-            return card._source.back;
-        }
-        
-        // 9. Проверяем флаги модуля drama-cards
-        if (card.flags && card.flags['drama-cards-ru'] && card.flags['drama-cards-ru'].back) {
-            console.log(`[${MODULE_ID}] Using drama-cards-ru flag back:`, card.flags['drama-cards-ru'].back);
-            return card.flags['drama-cards-ru'].back;
-        }
-        
-        // 10. Проверяем metadata изображения
-        if (card.img && typeof card.img === 'string') {
-            // Если путь к изображению содержит /back.webp, используем его
-            if (card.img.includes('/back.webp')) {
-                console.log(`[${MODULE_ID}] Found back in img path:`, card.img);
-                return card.img;
-            }
-            
-            // Пробуем извлечь рубашку из пути изображения
-            const imgPath = card.img.substring(0, card.img.lastIndexOf('/'));
-            const possibleBack = `${imgPath}/back.webp`;
-            console.log(`[${MODULE_ID}] Trying possible back from img path:`, possibleBack);
-            
-            // Проверяем существует ли такой путь (простая проверка)
-            if (possibleBack.includes('drama-cards-ru')) {
-                console.log(`[${MODULE_ID}] Using drama-cards back from path:`, possibleBack);
-                return possibleBack;
-            }
-        }
-        
-        // 11. Рубашка родительской колоды
-        if (card.parent && card.parent.type === 'deck' && card.parent.img) {
-            console.log(`[${MODULE_ID}] Using parent deck back:`, card.parent.img);
-            return card.parent.img;
-        }
-        
-        // 12. Рубашка по умолчанию из модуля
-        const backFileName = cardBackStyle === 'dark' ? 'dark-gold.webp' : 'light-soft.webp';
-        const modulePath = `modules/poker-hand-hud-dnd`;
-        const defaultBack = `${modulePath}/backs/${backFileName}`;
-        console.log(`[${MODULE_ID}] Using default module back:`, defaultBack);
-        return defaultBack;
-    }
-
-    /**
-     * Получает список доступных колод (Cards)
-     * @returns {Promise<{id: string, name: string, cards: CardDocument[]}[]>}
-     */
     async getAvailableDecks() {
         try {
-            console.log(`[${MODULE_ID}] Starting deck search...`);
-            
-            // Метод 1: game.cards.contents
-            let allCards = game.cards?.contents || [];
-            console.log(`[${MODULE_ID}] Method 1 - Found ${allCards.length} total cards in game.cards.contents`);
-            
-            // Метод 2: game.collections.get('cards')
-            if (!allCards.length && game.collections?.get('cards')) {
-                allCards = Array.from(game.collections.get('cards').values());
-                console.log(`[${MODULE_ID}] Method 2 - Found ${allCards.length} cards from collections`);
-            }
-            
-            // Метод 3: UI.tabs
-            if (!allCards.length && ui.tabs && ui.tabs.cards) {
-                allCards = ui.tabs.cards.contents || [];
-                console.log(`[${MODULE_ID}] Method 3 - Found ${allCards.length} cards from ui.tabs`);
-            }
-            
-            // Метод 4: Прямой поиск всех документов типа 'card'
+            const allCards = game.cards?.contents || [];
             if (!allCards.length) {
-                allCards = game.actors?.flatMap(actor => 
-                    actor.items?.filter(item => item.type === 'card') || []
-                ) || [];
-                console.log(`[${MODULE_ID}] Method 4 - Found ${allCards.length} cards from actors`);
-            }
-            
-            console.log(`[${MODULE_ID}] Total cards found: ${allCards.length}`);
-            
-            if (!allCards.length) {
-                console.warn(`[${MODULE_ID}] No cards found with any method`);
-                ui.notifications.warn('Карты не найдены. Убедитесь что:\n1. В мире есть колоды карт\n2. Колоды содержат карты\n3. У вас есть права на просмотр карт');
+                ui.notifications.warn('Карты не найдены. Создайте колоды в разделе Cards.');
                 return [];
             }
+            const decks = allCards
+                .filter(c => c.type === 'deck')
+                .map(deck => ({
+                    id:    deck.id,
+                    name:  deck.name,
+                    cards: (deck.cards?.contents || []).filter(c => c.type !== 'deck'),
+                }))
+                .filter(d => d.cards.length > 0);
 
-            // Выводим детальную информацию о картах
-            allCards.forEach((card, index) => {
-                console.log(`[${MODULE_ID}] Card ${index + 1}:`, {
-                    name: card.name,
-                    type: card.type,
-                    id: card.id,
-                    parent: card.parent,
-                    parentName: card.parent?.name,
-                    parentType: card.parent?.documentName,
-                    hasParent: !!card.parent
-                });
-            });
-
-            // Фильтруем только настоящие колоды (type: 'deck')
-            const allDecks = allCards.filter(card => card.type === 'deck');
-            console.log(`[${MODULE_ID}] Found ${allDecks.length} actual decks out of ${allCards.length} total cards`);
-            
-            if (!allDecks.length) {
-                console.warn(`[${MODULE_ID}] No decks found with type 'deck'`);
-                ui.notifications.warn('Колоды не найдены. Убедитесь что:\n1. В мире есть колоды карт (type: deck)\n2. Колоды содержат карты\n3. У вас есть права на просмотр карт');
-                return [];
-            }
-
-            // Группируем карты по родительским колодам
-            const decksMap = new Map();
-            
-            // Добавляем настоящие колоды
-            allDecks.forEach(deck => {
-                console.log(`[${MODULE_ID}] Processing deck: ${deck.name} (${deck.id})`);
-                console.log(`[${MODULE_ID}] Deck cards count: ${deck.cards?.size || 0}`);
-                
-                // Извлекаем полноценные CardDocument объекты
-                const deckCards = [];
-                if (deck.cards) {
-                    for (const [cardId, card] of deck.cards.entries()) {
-                        // Ищем полноценный CardDocument по ID
-                        const fullCard = game.cards.get(cardId);
-                        if (fullCard) {
-                            deckCards.push(fullCard);
-                            console.log(`[${MODULE_ID}] Found full card document for "${card.name}":`, fullCard.name);
-                        } else {
-                            // Пробуем найти по имени
-                            const cardByName = game.cards?.contents?.find(c => c.name === card.name);
-                            if (cardByName) {
-                                deckCards.push(cardByName);
-                                console.log(`[${MODULE_ID}] Using card found by name:`, cardByName.name);
-                            } else {
-                                // Если не нашли, используем упрощенный объект
-                                deckCards.push(card);
-                                console.log(`[${MODULE_ID}] Using simplified card object for "${card.name}"`);
-                            }
-                        }
-                    }
-                }
-                
-                decksMap.set(deck.id, {
-                    id: deck.id,
-                    name: deck.name,
-                    cards: deckCards
-                });
-                
-                console.log(`[${MODULE_ID}] Added deck "${deck.name}" with ${deckCards.length} full card documents`);
-            });
-
-            const decks = Array.from(decksMap.values());
-            console.log(`[${MODULE_ID}] Final decks found:`, decks.map(d => `${d.name} (${d.cards.length} карт)`));
-            
-            // Фильтруем только колоды с картами
-            const validDecks = decks.filter(deck => deck.cards.length > 0);
-            console.log(`[${MODULE_ID}] Valid decks after filtering:`, validDecks.map(d => `${d.name} (${d.cards.length} карт)`));
-            
-            if (!validDecks.length) {
-                console.warn(`[${MODULE_ID}] No valid decks found after filtering`);
-                ui.notifications.warn('Не найдено колод с картами. Проверьте что в колодах есть карты.');
-                return [];
-            }
-            
-            return validDecks;
-            
-        } catch (error) {
-            console.error(`[${MODULE_ID}] Failed to get available decks:`, error);
-            ui.notifications.error('Не удалось получить список колод: ' + error.message);
+            if (!decks.length) ui.notifications.warn('Не найдено колод с картами.');
+            return decks;
+        } catch (err) {
+            console.error(`[${MODULE_ID}] getAvailableDecks:`, err);
+            ui.notifications.error('Не удалось получить список колод: ' + err.message);
             return [];
         }
     }
 
-    /**
-     * Передает карту игроку
-     * @param {CardDocument} card - Карта для передачи
-     * @param {User} player - Игрок-получатель
-     * @param {string} deckId - ID оригинальной колоды (опционально)
-     * @returns {Promise<boolean>}
-     */
-    async passCardToPlayer(card, player, deckId = null) {
+    selectRandomCards(cards, count = 3) {
+        if (!cards?.length) return [];
+        const available = cards.filter(c => c.parent?.type !== 'hand' && c.parent?.type !== 'pile');
+        if (!available.length) return [];
+        return [...available].sort(() => Math.random() - 0.5).slice(0, Math.min(count, available.length));
+    }
+
+    static getCardBack(card, cardBackStyle = 'dark') {
+        if (card.back?.img)                                   return card.back.img;
+        if (typeof card.back === 'string' && card.back)       return card.back;
+        if (card.faces?.back?.src)                            return card.faces.back.src;
+        if (card.system?.back)                                return card.system.back;
+        if (card.parent?.type === 'deck' && card.parent?.img) return card.parent.img;
+        const file = cardBackStyle === 'dark' ? 'dark-gold.webp' : 'light-soft.webp';
+        return `modules/poker-hand-hud-dnd/backs/${file}`;
+    }
+
+    static getCardFront(card) {
+        return card.faces?.[0]?.img || card.img || null;
+    }
+
+    async passCardToPlayer(card, player, keepFaceDown = false) {
         try {
-            console.log(`[${MODULE_ID}] Passing card "${card.name}" to player "${player.name}"`);
-            console.log(`[${MODULE_ID}] Player ID: ${player.id}, Player name: "${player.name}"`);
-            
-            // Ищем или создаем руку игрока
-            let playerHand = null;
-            
-            // Используем систему назначения рук для получения руки игрока
             const assignedHandName = HandAssignmentSystem.getUserAssignedHand(player.id);
-            if (assignedHandName) {
-                console.log(`[${MODULE_ID}] Found assigned hand for player ${player.name}: "${assignedHandName}"`);
-                
-                // Ищем руку по назначенному имени
-                const allCards = game.cards?.contents || [];
-                playerHand = allCards.find(c => 
-                    c.type === 'hand' && 
-                    c.name.toLowerCase() === assignedHandName.toLowerCase()
-                );
-                
-                if (playerHand) {
-                    console.log(`[${MODULE_ID}] Found assigned hand: "${playerHand.name}" (ID: ${playerHand.id})`);
-                } else {
-                    console.log(`[${MODULE_ID}] Assigned hand "${assignedHandName}" not found, creating new one...`);
-                }
-            } else {
-                console.log(`[${MODULE_ID}] No hand assigned to player ${player.name}`);
+            if (!assignedHandName) {
+                ui.notifications.error(`Нет назначенной руки для игрока ${player.name}`);
+                return false;
             }
-            
-            if (playerHand) {
-                console.log(`[${MODULE_ID}] Found existing hand for player ${player.name}: "${playerHand.name}" (ID: ${playerHand.id}, type: ${playerHand.type})`);
-                
-                // Проверяем и обновляем права доступа если нужно
-                if (playerHand.ownership[player.id] !== 3) {
-                    console.log(`[${MODULE_ID}] Updating ownership for player ${player.name} on hand "${playerHand.name}"`);
-                    await playerHand.update({
-                        ownership: {
-                            ...playerHand.ownership,
-                            [player.id]: 3
-                        }
-                    });
-                }
-            } else {
-                console.log(`[${MODULE_ID}] No hand found for player ${player.name}, creating one...`);
-                
-                // Метод 2: Создаем новую руку для игрока
-                const handData = {
-                    name: `Рука ${player.name}`,
-                    type: 'hand',
-                    img: 'icons/svg/hand.svg',
-                    description: `Карточная рука игрока ${player.name}`,
-                    ownership: {
-                        default: 0,
-                        [player.id]: 3 // Даем игроку полный доступ
-                    }
-                };
-                
-                playerHand = await Cards.create(handData);
-                console.log(`[${MODULE_ID}] Created hand "${playerHand.name}" (ID: ${playerHand.id}) for player ${player.name}`);
+
+            const playerHand = (game.cards?.contents || []).find(c =>
+                c.type === 'hand' && c.name.toLowerCase() === assignedHandName.toLowerCase()
+            );
+            if (!playerHand) {
+                ui.notifications.error(`Рука "${assignedHandName}" не найдена для ${player.name}`);
+                return false;
             }
-            
-            // Передаем карту в руку игрока
-            console.log(`[${MODULE_ID}] Passing card "${card.name}" to hand "${playerHand.name}"`);
-            
-            // Сохраняем ID оригинальной колоды в данных карты перед передачей
-            if (deckId) {
-                console.log(`[${MODULE_ID}] Attempting to save originalDeckId "${deckId}" for card "${card.name}"`);
-                console.log(`[${MODULE_ID}] Card structure:`, {
-                    id: card.id,
-                    name: card.name,
-                    type: card.type,
-                    hasSystem: !!card.system,
-                    systemKeys: card.system ? Object.keys(card.system) : null,
-                    hasFlags: !!card.flags,
-                    canUpdate: card.canUserModify(game.user, "update")
-                });
-                
-                try {
-                    // Пробуем сохранить в системных данных
-                    const updateData = {};
-                    if (card.system) {
-                        updateData["system.originalDeckId"] = deckId;
-                    } else {
-                        // Если нет системных данных, создаем их
-                        updateData["system"] = { originalDeckId: deckId };
-                    }
-                    
-                    await card.update(updateData);
-                    console.log(`[${MODULE_ID}] Successfully set originalDeckId "${deckId}" in system data of card "${card.name}"`);
-                } catch (systemError) {
-                    console.warn(`[${MODULE_ID}] Failed to set originalDeckId in system data:`, systemError);
-                    
-                    // Пробуем флаги как fallback
-                    try {
-                        await card.setFlag(MODULE_ID, 'originalDeckId', deckId);
-                        console.log(`[${MODULE_ID}] Set originalDeckId flag "${deckId}" on card "${card.name}"`);
-                    } catch (flagError) {
-                        console.warn(`[${MODULE_ID}] Failed to set originalDeckId flag on card "${card.name}":`, flagError);
-                        
-                        // Последний вариант - сохраняем в _source
-                        try {
-                            card._source.originalDeckId = deckId;
-                            console.log(`[${MODULE_ID}] Set originalDeckId "${deckId}" in _source of card "${card.name}"`);
-                        } catch (sourceError) {
-                            console.warn(`[${MODULE_ID}] Failed to set originalDeckId in _source:`, sourceError);
-                        }
-                    }
-                }
+
+            if (playerHand.ownership?.[player.id] !== 3) {
+                await playerHand.update({ ownership: { ...(playerHand.ownership || {}), [player.id]: 3 } });
             }
-            
-            await card.pass(playerHand);
-            console.log(`[${MODULE_ID}] Card "${card.name}" successfully passed to player "${player.name}"`);
-            
-            // Обновляем HUD игрока
-            try {
-                // Находим руку игрока для обновления HUD
-                const allCards = game.cards?.contents || [];
-                const playerHand = allCards.find(c => 
-                    c.name.toLowerCase().includes(player.name.toLowerCase())
-                );
-                
-                if (playerHand) {
-                    console.log(`[${MODULE_ID}] Card passed to player ${player.name}, their HUD should update automatically via hooks`);
-                    // Не вызываем renderCards здесь - пусть хуки обновят HUD на стороне игрока
-                } else {
-                    console.warn(`[${MODULE_ID}] Player hand not found for ${player.name}`);
-                }
-            } catch (hudError) {
-                console.warn(`[${MODULE_ID}] Failed to handle player HUD update:`, hudError);
+
+            await card.pass(playerHand, { chat: false, display: false, render: false });
+
+            if (keepFaceDown) {
+                const cardInHand = playerHand.cards.get(card.id);
+                if (cardInHand) await cardInHand.update({ face: null });
             }
-            
+
             return true;
-            
-        } catch (error) {
-            console.error(`[${MODULE_ID}] Failed to pass card to player:`, error);
-            ui.notifications.error(`Не удалось передать карту игроку ${player.name}: ${error.message}`);
+        } catch (err) {
+            console.error(`[${MODULE_ID}] passCardToPlayer:`, err);
+            ui.notifications.error(`Не удалось передать карту ${player.name}: ${err.message}`);
             return false;
         }
     }
 
-    /**
-     * Выбирает случайные карты из колоды
-     * @param {CardDocument[]} cards - Массив карт или колода
-     * @param {number} count - Количество карт для выбора
-     * @returns {CardDocument[]}
-     */
-    selectRandomCards(cards, count = 3) {
-        console.log(`[${MODULE_ID}] selectRandomCards called with:`, {
-            cardsCount: cards.length,
-            requestedCount: count,
-            firstCard: cards[0],
-            cardTypes: cards.map(c => ({name: c.name, type: c.type, hasParent: !!c.parent}))
-        });
-
-        // Проверяем, что переданы именно карты, а не колоды
-        if (!cards || cards.length === 0) {
-            console.warn(`[${MODULE_ID}] No cards provided to selectRandomCards`);
-            return [];
-        }
-
-        // Если передана одна колода (type: "deck"), извлекаем её карты
-        if (cards.length === 1 && cards[0].type === 'deck' && cards[0].cards) {
-            console.log(`[${MODULE_ID}] Deck object provided. Extracting cards from deck "${cards[0].name}"`);
-            console.log(`[${MODULE_ID}] Deck contains ${cards[0].cards.size} cards`);
-            
-            // Извлекаем полноценные CardDocument объекты
-            const deckCards = [];
-            console.log(`[${MODULE_ID}] All cards in game.cards:`, game.cards?.contents?.map(c => ({
-                id: c.id,
-                name: c.name,
-                type: c.type
-            })));
-            
-            for (const [cardId, card] of cards[0].cards.entries()) {
-                console.log(`[${MODULE_ID}] Looking for card with ID: ${cardId}`);
-                console.log(`[${MODULE_ID}] Simplified card data:`, {
-                    id: card.id,
-                    name: card.name,
-                    img: card.img
-                });
-                
-                // Ищем полноценный CardDocument по ID
-                const fullCard = game.cards.get(cardId);
-                console.log(`[${MODULE_ID}] Found full card:`, !!fullCard);
-                if (fullCard) {
-                    console.log(`[${MODULE_ID}] Full card details:`, {
-                        id: fullCard.id,
-                        name: fullCard.name,
-                        type: fullCard.type,
-                        back: fullCard.back,
-                        faces: fullCard.faces,
-                        system: fullCard.system
-                    });
-                    deckCards.push(fullCard);
-                } else {
-                    // Пробуем найти по имени
-                    const cardByName = game.cards?.contents?.find(c => c.name === card.name);
-                    console.log(`[${MODULE_ID}] Found card by name:`, !!cardByName);
-                    if (cardByName) {
-                        deckCards.push(cardByName);
-                        console.log(`[${MODULE_ID}] Using card found by name:`, cardByName.name);
-                    } else {
-                        // Если не нашли, используем упрощенный объект но с дополнительными данными
-                        deckCards.push(card);
-                        console.log(`[${MODULE_ID}] Using simplified card object for "${card.name}"`);
-                    }
-                }
-            }
-            cards = deckCards;
-            
-            console.log(`[${MODULE_ID}] Extracted ${cards.length} full card documents from deck`);
-        }
-
-        // Если передана одна карта без типа, ищем настоящие карты
-        else if (cards.length === 1 && cards[0].name && !cards[0].type) {
-            console.log(`[${MODULE_ID}] Looks like a deck was passed instead of cards. Searching for actual cards...`);
-            
-            // Ищем все карты в мире
-            const allCards = game.cards?.contents || [];
-            const actualCards = allCards.filter(card => 
-                card.parent && card.parent.id === cards[0].id
-            );
-            
-            console.log(`[${MODULE_ID}] Found ${actualCards.length} actual cards in deck "${cards[0].name}"`);
-            
-            if (actualCards.length > 0) {
-                cards = actualCards;
-            }
-        }
-
-        // Перемешиваем карты и выбираем нужное количество
-        // Фильтруем только невыданные карты
-        const availableCards = cards.filter(card => {
-            // Проверяем что карта не выдана (не находится в руке или discard pile)
-            const isDrawn = card.drawn !== undefined ? card.drawn : false;
-            const isInHand = card.parent?.type === 'hand';
-            const isInDiscard = card.parent?.type === 'pile';
-            
-            console.log(`[${MODULE_ID}] Card "${card.name}" availability:`, {
-                isDrawn,
-                isInHand,
-                isInDiscard,
-                parentType: card.parent?.type,
-                available: !isDrawn && !isInHand && !isInDiscard
-            });
-            
-            return !isDrawn && !isInHand && !isInDiscard;
-        });
-        
-        console.log(`[${MODULE_ID}] Available cards for selection: ${availableCards.length} out of ${cards.length}`);
-        
-        if (availableCards.length === 0) {
-            console.warn(`[${MODULE_ID}] No available cards to select from`);
-            return [];
-        }
-        
-        const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
-        const selected = shuffled.slice(0, Math.min(count, availableCards.length));
-        
-        console.log(`[${MODULE_ID}] Selected ${selected.length} cards:`, selected.map(c => c.name));
-        
-        return selected;
-    }
-
-    /**
-     * Создает диалог выбора игроков и колоды
-     */
+    // ─── Диалог ГМа ───────────────────────────────────────────────────────────
     async showDistributionDialog() {
-        if (!game.user.isGM) {
-            ui.notifications.error('Эта функция доступна только ГМу');
-            return;
-        }
+        if (!game.user.isGM) { ui.notifications.error('Только для ГМа'); return; }
 
-        // Получаем доступных игроков
         const players = game.users.filter(u => u.role === CONST.USER_ROLES.PLAYER && u.active);
-        
-        // Получаем доступные колоды
         this.availableDecks = await this.getAvailableDecks();
-        
-        // Получаем последнюю использованную колоду или выбираем первую
-        const lastDeckId = this.lastSelectedDeckId || (this.availableDecks.length > 0 ? this.availableDecks[0].id : '');
-        const selectedDeck = this.availableDecks.find(deck => deck.id === lastDeckId);
 
+        const lastDeckId     = this.lastSelectedDeckId || this.availableDecks[0]?.id || '';
+        const globalFaceDown = Utils.getSettingSafe('dealCardsFaceDown', false);
+
+        // ВАЖНО: overflow НЕ hidden — иначе нативный select обрезается браузером.
+        // Скругления углов делаем через отдельные стили на первом и последнем блоке.
         const dialogContent = `
-            <div class="gm-card-distributor" style="
-                padding: 0;
-                min-width: 380px;
-                font-family: 'Cinzel', serif;
-                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-                border-radius: 15px;
-                overflow: hidden;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+<div class="gm-card-distributor" style="
+    font-family:'Cinzel',serif;
+    background:linear-gradient(135deg,#1a1a1a,#2d2d2d);
+    border-radius:12px;
+">
+
+    <div style="padding:20px 22px 0; border-radius:12px 12px 0 0;">
+
+        <!-- Игроки -->
+        <div style="margin-bottom:18px;">
+            <h4 style="margin:0 0 9px;color:#ffd700;font-size:13px;text-transform:uppercase;letter-spacing:1px;">👥 Игроки</h4>
+            <div style="
+                display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+                gap:6px; max-height:150px; overflow-y:auto;
+                padding:10px; border-radius:7px;
+                background:rgba(0,0,0,0.35); border:1px solid rgba(255,215,0,0.2);
             ">
-                <!-- Контент -->
-                <div style="padding: 25px;">
-                    <!-- Игроки -->
-                    <div class="section" style="margin-bottom: 25px;">
-                        <h4 style="
-                            margin: 0 0 15px 0;
-                            color: #ffd700;
-                            font-size: 16px;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                        ">
-                            <span style="color: #ff6b6b;">👥</span>
-                            Выберите игроков:
-                        </h4>
-                        <div class="players-list" style="
-                            display: grid;
-                            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                            gap: 10px;
-                            max-height: 200px;
-                            overflow-y: auto;
-                            padding: 15px;
-                            border-radius: 10px;
-                            background: rgba(0,0,0,0.4);
-                            border: 2px solid rgba(255,215,0,0.3);
-                        ">
-                            ${players.map(player => `
-                                <label class="player-checkbox" style="
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 12px;
-                                    cursor: pointer;
-                                    padding: 12px;
-                                    border-radius: 8px;
-                                    background: rgba(255,255,255,0.05);
-                                    border: 2px solid transparent;
-                                    transition: all 0.3s ease;
-                                    position: relative;
-                                " onmouseover="this.style.background='rgba(255,215,0,0.1)'; this.style.borderColor='rgba(255,215,0,0.5)'" 
-                                   onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='transparent'">
-                                    <input type="checkbox" name="player" value="${player.id}" style="
-                                        margin: 0;
-                                        width: 18px;
-                                        height: 18px;
-                                        accent-color: #ffd700;
-                                    ">
-                                    <span style="
-                                        color: #f0e6d2;
-                                        font-weight: 500;
-                                        font-size: 14px;
-                                    ">${player.name}</span>
-                                    <span style="
-                                        position: absolute;
-                                        top: 5px;
-                                        right: 5px;
-                                        width: 8px;
-                                        height: 8px;
-                                        background: #4caf50;
-                                        border-radius: 50%;
-                                        box-shadow: 0 0 10px rgba(76,175,80,0.8);
-                                    " title="Игрок в сети"></span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <!-- Колода -->
-                    <div class="section" style="margin-bottom: 25px;">
-                        <h4 style="
-                            margin: 0 0 15px 0;
-                            color: #ffd700;
-                            font-size: 16px;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                        ">
-                            <span style="color: #ff6b6b;">🃏</span>
-                            Выберите колоду:
-                        </h4>
-                        <select name="deck" style="
-                            width: 100%;
-                            border: 2px solid rgba(255,215,0,0.3);
-                            border-radius: 8px;
-                            background: rgba(0,0,0,0.6);
-                            color: #f0e6d2;
-                            font-family: 'Cinzel', serif;
-                            font-size: 14px;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                        " onmouseover="this.style.borderColor='rgba(255,215,0,0.6)'" 
-                           onmouseout="this.style.borderColor='rgba(255,215,0,0.3)'">
-                            ${selectedDeck ? `
-                                <option value="${selectedDeck.id}" selected style="background: #1a1a1a;">
-                                    � ${selectedDeck.name} (${selectedDeck.cards.length} карт)
-                                </option>
-                            ` : '<option value="" selected style="background: #1a1a1a;">� Выберите колоду...</option>'}
-                            ${this.availableDecks.filter(deck => deck.id !== (selectedDeck?.id || '')).map(deck => `
-                                <option value="${deck.id}" style="background: #1a1a1a;">
-                                    🎴 ${deck.name} (${deck.cards.length} карт)
-                                </option>
-                            `).join('')}
-                        </select>
-                    </div>
-                    
-                    <!-- Настройки -->
-                    <div class="section" style="margin-bottom: 25px;">
-                        <h4 style="
-                            margin: 0 0 15px 0;
-                            color: #ffd700;
-                            font-size: 16px;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                        ">
-                            <span style="color: #ff6b6b;">⚙️</span>
-                            Настройки:
-                        </h4>
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 15px;
-                            padding: 15px;
-                            background: rgba(0,0,0,0.4);
-                            border-radius: 10px;
-                            border: 2px solid rgba(255,215,0,0.3);
-                        ">
-                            <label style="
-                                display: flex;
-                                align-items: center;
-                                gap: 10px;
-                                color: #f0e6d2;
-                                font-size: 14px;
-                            ">
-                                <span>🎯</span>
-                                <span>Количество карт:</span>
-                                <input type="number" name="cardCount" value="3" min="1" max="10" style="
-                                    width: 70px;
-                                    padding: 8px 12px;
-                                    border: 2px solid rgba(255,215,0,0.3);
-                                    border-radius: 6px;
-                                    background: rgba(0,0,0,0.6);
-                                    color: #ffd700;
-                                    font-family: 'Cinzel', serif;
-                                    font-size: 14px;
-                                    text-align: center;
-                                    transition: all 0.3s ease;
-                                " onmouseover="this.style.borderColor='rgba(255,215,0,0.6)'" 
-                                   onmouseout="this.style.borderColor='rgba(255,215,0,0.3)'">
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Футер с кнопками -->
-                <div style="
-                    background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
-                    padding: 20px;
-                    border-top: 2px solid rgba(255,215,0,0.3);
-                    display: flex;
-                    justify-content: center;
-                    gap: 15px;
-                ">
-                    <button id="distribute-btn" style="
-                        background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-                        border: 2px solid #2e7d32;
-                        color: white;
-                        font-weight: bold;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        text-transform: uppercase;
-                        letter-spacing: 1px;
-                        box-shadow: 0 4px 15px rgba(76,175,80,0.4);
-                        transition: all 0.3s ease;
-                        cursor: pointer;
-                    " onmouseover="this.style.background='linear-gradient(135deg, #45a049 0%, #4caf50 100%)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(76,175,80,0.6)'" 
-                       onmouseout="this.style.background='linear-gradient(135deg, #4caf50 0%, #45a049 100%)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(76,175,80,0.4)'">
-                        🎴 РАЗДАТЬ
-                    </button>
-                    <button id="cancel-btn" style="
-                        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-                        border: 2px solid #c62828;
-                        color: white;
-                        font-weight: bold;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        text-transform: uppercase;
-                        letter-spacing: 1px;
-                        box-shadow: 0 4px 15px rgba(244,67,54,0.4);
-                        transition: all 0.3s ease;
-                        cursor: pointer;
-                    " onmouseover="this.style.background='linear-gradient(135deg, #d32f2f 0%, #f44336 100%)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(244,67,54,0.6)'" 
-                       onmouseout="this.style.background='linear-gradient(135deg, #f44336 0%, #d32f2f 100%)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(244,67,54,0.4)'">
-                        ✖ ОТМЕНА
-                    </button>
-                </div>
+                ${players.map(p => `
+                    <label style="
+                        display:flex; align-items:center; gap:8px;
+                        cursor:pointer; padding:7px 9px; border-radius:6px;
+                        background:rgba(255,255,255,0.04); border:1px solid transparent;
+                        transition:all 0.2s;
+                    "
+                        onmouseover="this.style.background='rgba(255,215,0,0.08)';this.style.borderColor='rgba(255,215,0,0.35)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='transparent'">
+                        <input type="checkbox" name="player" value="${p.id}"
+                            style="margin:0;width:14px;height:14px;accent-color:#ffd700;flex-shrink:0;">
+                        <span style="color:#f0e6d2;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+                        <span style="margin-left:auto;width:6px;height:6px;background:#4caf50;border-radius:50%;flex-shrink:0;"></span>
+                    </label>
+                `).join('')}
             </div>
-        `;
+        </div>
 
-        const dialog = new Dialog({
-            title: "🎴 Раздача карт",
-            content: dialogContent,
-            buttons: {},
-            default: null,
-            width: 380,
-            height: 600
-        });
+        <!-- Колода —— НЕТ overflow:hidden выше, дропдаун select будет виден -->
+        <!-- Колода -->
+        <div style="margin-bottom:18px;">
+            <h4 style="margin:0 0 9px;color:#ffd700;font-size:13px;text-transform:uppercase;letter-spacing:1px;">🃏 Колода</h4>
+            <select name="deck" style="
+                width:100%; height:38px; box-sizing:border-box; padding:0 10px;
+                border:1px solid rgba(255,215,0,0.25); border-radius:7px;
+                background:rgba(0,0,0,0.55); color:#f0e6d2;
+                font-family:'Cinzel',serif; font-size:14px; cursor:pointer; outline:none;
+            ">
+                ${!lastDeckId ? '<option value="" style="background:#1a1a1a;">— выберите...</option>' : ''}
+                ${this.availableDecks.map(d =>
+            `<option value="${d.id}" ${d.id === lastDeckId ? 'selected' : ''} style="background:#1a1a1a;">
+                        🎴 ${d.name} (${d.cards.length})
+                    </option>`
+        ).join('')}
+            </select>
+        </div>
 
+        <!-- Настройки -->
+        <div style="margin-bottom:20px;">
+            <h4 style="margin:0 0 9px;color:#ffd700;font-size:13px;text-transform:uppercase;letter-spacing:1px;">⚙️ Настройки</h4>
+            <div style="
+                display:flex; flex-direction:column; gap:10px;
+                padding:12px; background:rgba(0,0,0,0.35);
+                border-radius:7px; border:1px solid rgba(255,215,0,0.2);
+            ">
+                <!-- Кол-во карт -->
+                <label style="display:flex;align-items:center;gap:10px;color:#f0e6d2;font-size:13px;">
+                    <span>🎯 Карт для выбора:</span>
+                    <input type="number" name="cardCount" value="3" min="1" max="10" style="
+                        width:56px; padding:5px 8px;
+                        border:1px solid rgba(255,215,0,0.25); border-radius:5px;
+                        background:rgba(0,0,0,0.5); color:#ffd700;
+                        font-family:'Cinzel',serif; font-size:13px; text-align:center;
+                        margin-left:auto;
+                    ">
+                </label>
+
+                <!-- Face-down -->
+                <label style="
+                    display:flex; align-items:flex-start; gap:11px; cursor:pointer;
+                    padding:10px; border-radius:6px;
+                    background:rgba(0,0,0,0.2); border:1px solid rgba(255,215,0,0.18);
+                    transition:all 0.2s;
+                "
+                    onmouseover="this.style.background='rgba(255,215,0,0.06)';this.style.borderColor='rgba(255,215,0,0.35)'"
+                    onmouseout="this.style.background='rgba(0,0,0,0.2)';this.style.borderColor='rgba(255,215,0,0.18)'">
+                    <input type="checkbox" name="faceDown" ${globalFaceDown ? 'checked' : ''}
+                        style="margin-top:2px;width:15px;height:15px;accent-color:#ffd700;flex-shrink:0;cursor:pointer;">
+                    <div>
+                        <div style="color:#ffd700;font-weight:600;font-size:13px;margin-bottom:3px;">🙈 Раздать рубашкой вверх</div>
+                        <div style="color:#8a7a65;font-size:11px;line-height:1.5;">
+                            Игрок выбирает вслепую. Карта лежит закрытой в руке<br>
+                            и раскрывается только при розыгрыше.<br>
+                            ГМ получит шёпот — что именно взял игрок.
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Футер -->
+    <div style="
+        padding:13px 22px;
+        border-top:1px solid rgba(255,215,0,0.2);
+        border-radius:0 0 12px 12px;
+        display:flex; justify-content:center; gap:12px;
+    ">
+        <button id="distribute-btn" style="
+            background:linear-gradient(135deg,#4caf50,#388e3c);
+            border:1px solid #2e7d32; color:#fff;
+            font-weight:bold; padding:9px 22px;
+            border-radius:6px; font-size:12px;
+            text-transform:uppercase; letter-spacing:1px;
+            cursor:pointer; font-family:'Cinzel',serif;
+            transition:filter 0.2s;
+        "
+            onmouseover="this.style.filter='brightness(1.15)'"
+            onmouseout="this.style.filter=''">
+            🎴 Раздать
+        </button>
+        <button id="cancel-btn" style="
+            background:linear-gradient(135deg,#e53935,#c62828);
+            border:1px solid #b71c1c; color:#fff;
+            font-weight:bold; padding:9px 22px;
+            border-radius:6px; font-size:12px;
+            text-transform:uppercase; letter-spacing:1px;
+            cursor:pointer; font-family:'Cinzel',serif;
+            transition:filter 0.2s;
+        "
+            onmouseover="this.style.filter='brightness(1.15)'"
+            onmouseout="this.style.filter=''">
+            ✖ Отмена
+        </button>
+    </div>
+</div>`;
+
+        const dialog = new Dialog({ title: '🎴 Раздача карт', content: dialogContent, buttons: {}, width: 420 });
         dialog.render(true);
-        
-        // Применяем кастомные стили и обработчики
+
         setTimeout(() => {
-            const dialogElement = $(dialog.element);
-            
-            // Стили для заголовка окна
-            dialogElement.find('.window-header').css({
-                'background': 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-                'border-bottom': '2px solid rgba(255,215,0,0.3)',
-                'border-radius': '15px 15px 0 0'
+            const $d = $(dialog.element);
+            $d.find('.window-header').css({ background: '#1a1a1a', borderBottom: '1px solid rgba(255,215,0,0.2)' });
+            $d.find('.window-title').css({ color: '#ffd700', fontWeight: 'bold', fontFamily: 'Cinzel,serif' });
+            $d.find('.dialog-buttons').hide();
+
+            $d.find('#distribute-btn').on('click', async () => {
+                const ok = await this.distributeCards($d.find('.gm-card-distributor'));
+                if (ok) dialog.close();
             });
-            
-            dialogElement.find('.window-title').css({
-                'color': '#ffd700',
-                'font-weight': 'bold',
-                'text-shadow': '2px 2px 4px rgba(0,0,0,0.8)'
-            });
-            
-            // Скрываем стандартные кнопки
-            dialogElement.find('.dialog-buttons').hide();
-            
-            // Добавляем обработчики для кастомных кнопок
-            dialogElement.find('#distribute-btn').on('click', () => {
-                const html = dialogElement.find('.gm-card-distributor');
-                this.distributeCards(html);
-                dialog.close();
-            });
-            
-            dialogElement.find('#cancel-btn').on('click', () => {
-                dialog.close();
-            });
+            $d.find('#cancel-btn').on('click', () => dialog.close());
         }, 100);
     }
 
-    /**
-     * Раздает карты выбранным игрокам
-     * @param {jQuery} html - HTML элемент диалога
-     */
     async distributeCards(html) {
-        const selectedPlayerIds = html.find('input[name="player"]:checked').map((i, el) => el.value).get();
-        
-        if (selectedPlayerIds.length === 0) {
-            ui.notifications.warn('Выберите хотя бы одного игрока');
-            return;
-        }
+        const playerIds = html.find('input[name="player"]:checked').map((_, el) => el.value).get();
+        if (!playerIds.length) { ui.notifications.warn('Выберите хотя бы одного игрока'); return false; }
 
-        const selectedDeckId = html.find('select[name="deck"]').val();
-        if (!selectedDeckId) {
-            ui.notifications.warn('Выберите колоду');
-            return;
-        }
+        const deckId = html.find('select[name="deck"]').val();
+        if (!deckId) { ui.notifications.warn('Выберите колоду'); return false; }
 
-        // Сохраняем выбранную колоду для следующего раза
-        this.lastSelectedDeckId = selectedDeckId;
+        this.lastSelectedDeckId = deckId;
 
-        const cardCount = parseInt(html.find('input[name="cardCount"]').val()) || 3;
+        const count    = parseInt(html.find('input[name="cardCount"]').val()) || 3;
+        const faceDown = html.find('input[name="faceDown"]').is(':checked');
+        const deck     = this.availableDecks.find(d => d.id === deckId);
 
-        const selectedDeck = this.availableDecks.find(deck => deck.id === selectedDeckId);
-        if (!selectedDeck || selectedDeck.cards.length === 0) {
-            ui.notifications.warn('В выбранной колоде нет карт');
-            return;
-        }
+        if (!deck?.cards.length)  { ui.notifications.warn('В колоде нет карт'); return false; }
 
-        // Выбираем случайные карты из колоды
-        const selectedCards = this.selectRandomCards(selectedDeck.cards, cardCount);
-        
-        console.log(`[${MODULE_ID}] Selected ${selectedCards.length} cards for distribution:`, selectedCards.map(c => c.name));
+        const cards = this.selectRandomCards(deck.cards, count);
+        if (!cards.length)        { ui.notifications.error('Нет доступных карт'); return false; }
+        if (cards.length < count) { ui.notifications.error(`Доступно только ${cards.length} карт`); return false; }
 
-        for (const playerId of selectedPlayerIds) {
+        for (const playerId of playerIds) {
             const player = game.users.get(playerId);
-            if (player) {
-                await this.sendCardChoiceToPlayer(player, selectedCards, selectedDeck);
-            }
+            if (player) await this.sendCardChoiceToPlayer(player, cards, deck, faceDown);
         }
 
-        ui.notifications.info(`Карты отправлены ${selectedPlayerIds.length} игрокам из колоды "${selectedDeck.name}"`);
+        ui.notifications.info(`Карты${faceDown ? ' (рубашкой вверх)' : ''} отправлены ${playerIds.length} игрокам из "${deck.name}"`);
+        return true;
     }
 
-    /**
-     * Отправляет диалог выбора карты игроку
-     * @param {User} player - Игрок
-     * @param {CardDocument[]} cards - Массив карт
-     * @param {Object} deck - Информация о колоде
-     */
-    async sendCardChoiceToPlayer(player, cards, deck) {
+    async sendCardChoiceToPlayer(player, cards, deck, faceDown = false) {
         try {
-            // Сериализуем данные карт для передачи
+            const cardBackStyle   = Utils.getSettingSafe('cardBackStyle', 'dark');
             const serializedCards = cards.map(card => ({
-                id: card.id,
-                name: card.name,
-                description: card.description,
-                img: card.img,
-                // Включаем все свойства рубашки
-                back: card.back,
-                faces: card.faces,
-                system: card.system,
-                texture: card.texture,
-                document: card.document,
-                _source: card._source,
-                flags: card.flags
+                id:          card.id,
+                name:        card.name,
+                description: card.description || '',
+                front:       GMCardDistributor.getCardFront(card),
+                back:        GMCardDistributor.getCardBack(card, cardBackStyle),
             }));
-            
-            // Отправляем query игроку
-            const queryData = { 
-                cards: serializedCards, 
-                deck: {
-                    id: deck.id,
-                    name: deck.name
-                }
-            };
-            
-            const result = await player.query(`${MODULE_ID}.showCardDialog`, queryData, { timeout: 30000 });
-            
-            console.log(`[${MODULE_ID}] Dialog sent to ${player.name}:`, result);
-            
-        } catch (error) {
-            console.error(`[${MODULE_ID}] Failed to send dialog to player ${player.name}:`, error);
-            ui.notifications.error(`Не удалось отправить диалог игроку ${player.name}: ${error.message}`);
+
+            await player.query(
+                `${MODULE_ID}.showCardDialog`,
+                { cards: serializedCards, deck: { id: deck.id, name: deck.name }, faceDown },
+                { timeout: 60000 }
+            );
+        } catch (err) {
+            console.error(`[${MODULE_ID}] sendCardChoiceToPlayer:`, err);
+            ui.notifications.error(`Не удалось отправить диалог ${player.name}: ${err.message}`);
         }
-    }
-
-    /**
-     * Обрабатывает выбор карты игроком
-     * @param {HTMLElement} slot - Элемент выбранной карты
-     * @param {User} player - Игрок
-     * @param {CardDocument} card - Выбранная карта
-     * @param {Object} deck - Информация о колоде
-     */
-    async handleCardSelection(slot, player, card, deck) {
-        // Воспроизводим звук
-        SFX.play(SFX.sounds.click);
-
-        // Убираем остальные карты с анимацией
-        const container = slot.closest('.card-container');
-        container.querySelectorAll('.card-slot').forEach(otherSlot => {
-            if (otherSlot !== slot) {
-                $(otherSlot).animate({
-                    opacity: 0.3,
-                    transform: 'scale(0.8)'
-                }, 300);
-            }
-        });
-
-        // Подсвечиваем выбранную карту
-        $(slot).css({
-            'border-color': '#ffd700',
-            'box-shadow': '0 0 20px rgba(255, 215, 0, 0.6)',
-            'transform': 'scale(1.1)'
-        });
-
-        // Проверяем доступность Orcnog Card Viewer
-        const hasCardViewer = game.modules.get("orcnog-card-viewer")?.active;
-        
-        if (hasCardViewer && typeof OrcnogFancyDisplay === "function") {
-            // Показываем карту через Orcnog Card Viewer
-            const borderColor = '#543';
-            const borderWidth = '5px';
-            
-            // Получаем рубашку карты через нашу функцию
-            const cardBack = GMCardDistributor.getCardBack(card, game.settings.get(MODULE_ID, "cardBackStyle") || "dark");
-            
-            OrcnogFancyDisplay({
-                front: card.img || 'icons/svg/card.svg',
-                back: cardBack,
-                border: borderColor,
-                borderWidth
-            }).render(true);
-        }
-
-        // Создаем карту в инвентаре игрока
-        const cardCopy = await this.createCardForPlayer(player, card, deck);
-
-        // Отправляем сообщение о выборе в общий чат
-        const announcementContent = `
-            <div style="
-                text-align: center;
-                padding: 15px;
-                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-                border: 2px solid #543;
-                border-radius: 10px;
-                color: #f0e6d2;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            ">
-                <h3 style="color: #ffd700; margin-bottom: 10px; font-family: 'Cinzel', serif; font-size: 1.5em;">
-                    🎴 Карта выбрана! 🎴
-                </h3>
-                <p style="margin-bottom: 10px;">
-                    <strong>${player.name}</strong> выбрал карту из колоды <strong>${deck.name}</strong>
-                </p>
-                ${card.img ? `
-                    <div style="margin: 15px 0;">
-                        <img src="${card.img}" style="
-                            max-width: 250px;
-                            max-height: 350px;
-                            border: 3px solid #543;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-                        "/>
-                    </div>
-                ` : ''}
-                <div style="margin: 10px 0;">
-                    <h4 style="color: #ffd700; margin: 8px 0; font-family: 'Cinzel', serif;">
-                        ${card.name}
-                    </h4>
-                    ${card.description ? `
-                        <p style="font-style: italic; color: #d4c5a0; margin: 5px 0; line-height: 1.4;">
-                            ${card.description}
-                        </p>
-                    ` : ''}
-                </div>
-                <p style="font-size: 12px; color: #888; margin-top: 10px;">
-                    ${cardCopy ? 'Карта добавлена в инвентарь игрока' : 'Карта создана'}
-                </p>
-            </div>
-        `;
-
-        await ChatMessage.create({
-            content: announcementContent,
-            speaker: ChatMessage.getSpeaker({ alias: "Мастер Игр" })
-        });
-
-        // Закрываем диалог через небольшую задержку
-        setTimeout(() => {
-            const dialog = slot.closest('.dialog');
-            if (dialog) {
-                $(dialog).animate({
-                    opacity: 0,
-                    transform: 'scale(0.8)'
-                }, 300, () => {
-                    dialog.close();
-                });
-            }
-        }, 1000);
     }
 }
 
-// Создаем экземпляр системы
 const gmCardDistributor = new GMCardDistributor();
 
-// Проверяем настройки в ready хуке
-Hooks.on('ready', () => {
-    console.log(`[${MODULE_ID}] Checking dealCardsFaceDown setting...`);
-    try {
-        const setting = game.settings.get(MODULE_ID, "dealCardsFaceDown");
-        console.log(`[${MODULE_ID}] dealCardsFaceDown setting value:`, setting);
-        console.log(`[${MODULE_ID}] dealCardsFaceDown setting type:`, typeof setting);
-        
-        // Проверяем что query зарегистрирован
-        console.log(`[${MODULE_ID}] Available queries:`, Object.keys(CONFIG.queries));
-        console.log(`[${MODULE_ID}] showCardDialog query exists:`, !!CONFIG.queries[`${MODULE_ID}.showCardDialog`]);
-    } catch (error) {
-        console.error(`[${MODULE_ID}] Error checking dealCardsFaceDown setting:`, error);
-    }
-});
-
-// Регистрируем query при инициализации модуля
 Hooks.on('init', () => {
-    console.log(`[${MODULE_ID}] Registering showCardDialog query...`);
-    
-    // Регистрируем query для отправки диалогов игрокам
-    CONFIG.queries[`${MODULE_ID}.showCardDialog`] = async (queryData, { timeout }) => {
-        console.log(`[${MODULE_ID}] showCardDialog query received!`);
-        console.log(`[${MODULE_ID}] Game ready:`, !!game.ready);
-        console.log(`[${MODULE_ID}] Settings available:`, !!game.settings);
-        
-        const { cards, deck } = queryData;
-        
-        // Отладочная информация
-        console.log(`[${MODULE_ID}] Received cards:`, cards);
-        console.log(`[${MODULE_ID}] Number of cards:`, cards.length);
-        
-        // Проверяем настройку "выдавать карты рубашкой вверх"
-        const dealCardsFaceDown = game.settings.get(MODULE_ID, "dealCardsFaceDown") || false;
-        const cardBackStyle = game.settings.get(MODULE_ID, "cardBackStyle") || "dark";
-        console.log(`[${MODULE_ID}] Deal cards face down:`, dealCardsFaceDown);
-        console.log(`[${MODULE_ID}] Card back style:`, cardBackStyle);
-        
-        // Логируем информацию о рубашках карт
-        cards.forEach((card, index) => {
-            const cardBack = GMCardDistributor.getCardBack(card, cardBackStyle);
-            console.log(`[${MODULE_ID}] Card ${index + 1} "${card.name}" back:`, cardBack);
-        });
-        
-        // Создаем HTML для диалога как в примере
-        const dialogHTML = `
-            <div class="card-wrapper" style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-                padding: 10px;
-                position: relative;
-                z-index: 10001;
-            ">
-                <div class="card-container" style="
-                    display: flex;
-                    gap: 20px;
-                    justify-content: center;
-                    align-items: center;
-                    min-height: 400px;
-                    transition: all 0.3s ease;
-                ">
-                    ${cards.map((card, index) => {
-                        // Получаем рубашку через статическую функцию
-                        const cardBack = GMCardDistributor.getCardBack(card, cardBackStyle);
-                        
-                        return `
-                        <div class="card-slot" data-card-id="${card.id}" style="
-                            width: 180px;
-                            height: 270px;
-                            cursor: pointer;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            border-radius: 8px;
-                            position: relative;
-                            transition: all 0.3s ease;
-                            overflow: hidden;
-                        " onmouseover="if (!this.dataset.selected) this.style.transform='scale(1.05)'" onmouseout="if (!this.dataset.selected) this.style.transform='scale(1)'">
-                            <img src="${dealCardsFaceDown ? (cardBack || card.img || 'icons/svg/card-back.svg') : (card.img || 'icons/svg/card-back.svg')}" class="card-img" style="
-                                width: 100%;
-                                height: 100%;
-                                object-fit: contain;
-                                opacity: 0;
-                                transform: translateY(80px);
-                                transition: all 0.8s ease ${index * 0.2}s;
-                                border: 1px solid var(--color-border-dark);
-                                border-radius: 8px;
-                            ">
-                        </div>
-                    `}).join('')}
-                </div>
-                <p style="
-                    text-align: center;
-                    font-size: 2em;
-                    font-family: 'Cinzel', serif;
-                    color: #ffd700;
-                    text-shadow: 0 0 10px #000, 0 0 5px #ffd700;
-                    letter-spacing: 1px;
-                    margin-top: 10px;
-                ">
-                    ${dealCardsFaceDown ? 'Выберите карту' : 'Выберите карту'}
-                </p>
-            </div>
-        `;
 
-        // Создаем диалог
+    // ── showCardDialog (выполняется на клиенте ИГРОКА) ─────────────────────────
+    CONFIG.queries[`${MODULE_ID}.showCardDialog`] = async (queryData) => {
+        const { cards, deck } = queryData;
+
+        const faceDown      = typeof queryData.faceDown === 'boolean'
+            ? queryData.faceDown
+            : (game.settings.get(MODULE_ID, 'dealCardsFaceDown') || false);
+        const cardBackStyle = game.settings.get(MODULE_ID, 'cardBackStyle') || 'dark';
+
+        // ИЗМЕНЕНИЕ v2.6: используем 3 сек как дефолт вместо 8,
+        // и таймер стартует СРАЗУ при клике, до завершения query
+        const closeDelay = Utils.getSettingSafe('cardSelectionCloseDelay', 3) * 1000;
+        const sc         = Utils.getSettingSafe('cardSelectionScale', 1.35);
+
+        const CARD_W = 160;
+        const CARD_H = 240;
+
+        const cardSlots = cards.map((card, i) => {
+            const displaySrc = faceDown
+                ? (card.back || GMCardDistributor.getCardBack(card, cardBackStyle))
+                : (card.front || card.back || GMCardDistributor.getCardBack(card, cardBackStyle));
+
+            return `
+<div class="card-slot"
+     data-card-id="${card.id}"
+     data-front="${card.front || ''}"
+     data-back="${card.back || ''}"
+     style="
+         position:relative;
+         width:${CARD_W}px; height:${CARD_H}px;
+         cursor:pointer; flex-shrink:0;
+         transition:transform 0.25s ease, filter 0.25s ease;
+     "
+     onmouseover="if(!this.dataset.selected){this.style.transform='translateY(-8px) scale(1.04)';this.style.filter='brightness(1.12)';}"
+     onmouseout="if(!this.dataset.selected){this.style.transform='';this.style.filter='';}">
+
+    <img class="card-img" src="${displaySrc}"
+        style="
+            display:block; width:100%; height:100%;
+            object-fit:contain; border-radius:9px;
+            opacity:0; transform:translateY(60px);
+            transition:opacity 0.65s ease ${i * 0.16}s, transform 0.65s ease ${i * 0.16}s;
+            pointer-events:none;
+        ">
+
+    <div class="card-badge" style="
+        display:none;
+        position:absolute; bottom:-34px; left:50%; transform:translateX(-50%);
+        background:rgba(10,8,4,0.88); border:1px solid #ffd700; border-radius:6px;
+        padding:4px 14px; color:#ffd700; font-size:11px;
+        font-family:'Cinzel',serif; white-space:nowrap;
+    ">${faceDown ? '✓ Выбрано' : `✓ ${card.name}`}</div>
+
+</div>`;
+        }).join('');
+
+        const hintText = faceDown
+            ? '🙈 Выберите карту вслепую — она раскроется при розыгрыше'
+            : 'Выберите карту';
+
+        const dialogHTML = `
+<div style="
+    display:flex; flex-direction:column; align-items:center;
+    gap:16px; padding:16px 20px 52px;
+    font-family:'Cinzel',serif;
+">
+    <div style="
+        padding:5px 18px; border-radius:16px;
+        background:rgba(0,0,0,0.6); border:1px solid rgba(255,215,0,0.3);
+        color:#ffd700; font-size:12px; letter-spacing:0.3px; text-align:center;
+    ">${hintText}</div>
+
+    <div class="card-container" style="
+        display:flex; flex-direction:row; flex-wrap:nowrap;
+        justify-content:center; align-items:flex-end;
+        gap:18px; margin-bottom:36px;
+    ">
+        ${cardSlots}
+    </div>
+</div>`;
+
         const dialog = new Dialog({
-            title: "", // убираем заголовок
+            title: '',
             content: dialogHTML,
             buttons: {},
             render: (html) => {
-                // Добавляем затемнение фона
-                const overlay = $('<div class="card-dialog-overlay"></div>').css({
-                    position: 'fixed',
-                    top: '0',
-                    left: '0',
-                    width: '100%',
-                    height: '100%',
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    zIndex: '9999',
-                    opacity: '0',
-                    transition: 'opacity 0.3s ease-in-out'
+
+                // Оверлей
+                const $overlay = $('<div>').css({
+                    position: 'fixed', inset: 0,
+                    background: 'rgba(0,0,0,0.82)',
+                    zIndex: 9999, opacity: 0, transition: 'opacity 0.3s ease',
                 });
-                
-                $('body').append(overlay);
-                
-                // Плавно появляем затемнение
+                $('body').append($overlay);
+                setTimeout(() => $overlay.css('opacity', 1), 40);
+
+                // Стиль окна — ширина под кол-во карт
+                const totalW   = Math.min(cards.length * (CARD_W + 18) + 80, window.innerWidth - 40);
+                const $wrapper = html.closest('.dialog');
+                $wrapper.css({ width: `${totalW}px`, background: 'transparent', boxShadow: 'none', border: 'none', zIndex: 10000 });
+                $wrapper.find('.window-header').css('display', 'none');
+                html.closest('.window-content').css({ background: 'transparent', overflow: 'visible', padding: 0 });
+
+                // Центрируем
                 setTimeout(() => {
-                    overlay.css('opacity', '1');
-                }, 50);
-                
-                // Настраиваем стиль диалога как в примере
-                const wrapper = html.closest(".dialog");
-                wrapper.css({
-                    width: "650px",
-                    height: "auto",
-                    background: "transparent",
-                    boxShadow: "none",
-                    border: "none",
-                    zIndex: "10000"
-                });
+                    dialog.setPosition({
+                        left: Math.max(20, (window.innerWidth  - $wrapper.outerWidth())  / 2),
+                        top:  Math.max(20, (window.innerHeight - $wrapper.outerHeight()) / 2),
+                    });
+                }, 20);
 
-                // скрываем заголовок и крестик
-                wrapper.find(".window-header").css("display", "none");
-                html.closest(".window-content").css({
-                    background: "transparent",
-                    overflow: "visible"
-                });
-
-                // Убираем border у всех изображений в диалогах
-                $('<style>')
-                    .prop('type', 'text/css')
-                    .html(`
-                        body.game .app .card-img {
-                            border: none !important;
-                            box-shadow: none !important;
-                        }
-                    `)
-                    .appendTo('head');
-
-                // Удаляем затемнение при закрытии диалога
-                const originalClose = dialog.close;
-                dialog.close = function(...args) {
-                    // Отменяем автоматическое закрытие если оно было
-                    if (dialog._closeTimeout) {
-                        clearTimeout(dialog._closeTimeout);
-                        dialog._closeTimeout = null;
-                    }
-                    
-                    overlay.css('opacity', '0');
-                    setTimeout(() => {
-                        overlay.remove();
-                    }, 300);
-                    return originalClose.apply(this, args);
+                // Перехват close — убираем оверлей
+                const origClose = dialog.close.bind(dialog);
+                dialog.close = (...args) => {
+                    if (dialog._closeTimeout) { clearTimeout(dialog._closeTimeout); dialog._closeTimeout = null; }
+                    $overlay.css('opacity', 0);
+                    setTimeout(() => $overlay.remove(), 280);
+                    return origClose(...args);
                 };
 
-                // анимация появления как в макросе
-                setTimeout(() => {
-                    html.find(".card-img").css({ 
-                        transform: "translateY(0)", 
-                        opacity: "1" 
+                // Появление карт
+                setTimeout(() => { html.find('.card-img').css({ opacity: 1, transform: 'translateY(0)' }); }, 50);
+
+                // ── Клик по карте ──────────────────────────────────────────────
+                html.find('.card-slot').on('click', async function () {
+                    const $slot = $(this);
+                    if ($slot.data('selected')) return;
+
+                    const cardId   = $slot.data('card-id');
+                    const cardData = cards.find(c => c.id === cardId);
+                    if (!cardData) return;
+
+                    if (SFX?.play) SFX.play(SFX.sounds.click);
+
+                    html.find('.card-slot').css('pointer-events', 'none');
+                    $slot.attr('data-selected', 'true');
+
+                    // Визуальный отклик — выбранная карта поднимается и светится
+                    $slot.css({
+                        transform:  `translateY(-12px) scale(${sc})`,
+                        filter:     'drop-shadow(0 0 14px rgba(255,215,0,0.85)) brightness(1.12)',
+                        zIndex:     100,
+                        transition: 'transform 0.3s ease, filter 0.3s ease',
                     });
-                }, 50);
+                    $slot.find('.card-badge').fadeIn(300);
 
-                // выбор карт
-                html.find(".card-slot").on("click", async (ev) => {
-                    const slot = $(ev.currentTarget);
-                    const cardId = slot.data('card-id');
-                    
-                    const card = cards.find(c => c.id === cardId);
-                    
-                    if (card) {
-                        // Воспроизводим звук
-                        if (typeof SFX !== 'undefined' && SFX.play) {
-                            SFX.play(SFX.sounds.click);
+                    // Остальные тускнеют
+                    html.find('.card-slot').not($slot).css({
+                        opacity:    0.18,
+                        filter:     'grayscale(80%) brightness(0.4)',
+                        transition: 'opacity 0.35s ease, filter 0.35s ease',
+                    });
+
+                    // ── ВАЖНО: таймер закрытия стартует СРАЗУ, до async операций ──
+                    dialog._closeTimeout = setTimeout(() => {
+                        if (dialog?.rendered && !dialog._closing) {
+                            dialog._closing = true;
+                            $(dialog.element).animate({ opacity: 0 }, 400, () => dialog.close());
                         }
-                        
-                        // Убираем остальные карты с улучшенной анимацией
-                        const container = slot.closest('.card-container');
-                        container.find('.card-slot').each(function() {
-                            const otherSlot = $(this);
-                            if (otherSlot[0] !== slot[0]) {
-                                // Помечаем как не выбранные и убираем hover эффект
-                                otherSlot.attr('data-selected', 'false');
-                                otherSlot.css('cursor', 'default');
-                                
-                                // Показываем остальные карты через 1.5 секунды без увеличения
-                                setTimeout(() => {
-                                    const otherImg = otherSlot.find('.card-img');
-                                    if (otherImg.length > 0) {
-                                        // Анимация переворота для остальных карт
-                                        otherImg.css({
-                                            'transform': 'rotateY(90deg)',
-                                            'transition': 'transform 0.3s ease-in'
-                                        });
-                                        
-                                        setTimeout(() => {
-                                            const otherCard = cards.find(c => c.id === otherSlot.data('card-id'));
-                                            if (otherCard && otherCard.img) {
-                                                otherImg[0].src = otherCard.img;
-                                            }
-                                            otherImg.css({
-                                                'transform': 'rotateY(0deg)',
-                                                'transition': 'transform 0.3s ease-out'
-                                            });
-                                        }, 300);
-                                    }
-                                }, 1500);
-                                
-                                // НЕ добавляем исчезновение - карты остаются до закрытия окна
-                            }
-                        });
+                    }, closeDelay);
 
-                        // Помечаем выбранную карту и блокируем выбор
-                        slot.attr('data-selected', 'true');
-                        slot.css('cursor', 'default');
-                        
-                        // Блокируем выбор для всех карт
-                        container.find('.card-slot').css('pointer-events', 'none');
+                    // Чат — публичное сообщение (не ждём)
+                    ChatMessage.create({
+                        content: `
+<div style="
+    text-align:center; padding:12px 14px;
+    background:linear-gradient(135deg,#2c3e50,#34495e);
+    border:2px solid #543; border-radius:10px; color:#f0e6d2;
+    font-family:'Signika',sans-serif;
+">
+    <h3 style="color:#ffd700;margin:0 0 6px;font-family:'Cinzel',serif;font-size:14px;">🎴 Карта выбрана</h3>
+    <p style="margin:0;font-size:12px;">
+        <strong>${game.user.name}</strong> взял карту из колоды <strong>${deck.name}</strong>
+        ${faceDown ? '<br><em style="color:#8a7a65;font-size:11px;">(карта закрыта — раскроется при розыгрыше)</em>' : ''}
+    </p>
+    ${!faceDown && cardData.front ? `
+        <img src="${cardData.front}" style="max-width:120px;border:2px solid #543;border-radius:6px;margin:8px 0 4px;">
+        <div style="color:#ffd700;font-weight:bold;font-family:'Cinzel',serif;font-size:13px;">${cardData.name}</div>
+        ${cardData.description ? `<div style="font-style:italic;color:#c0b090;font-size:11px;margin-top:2px;">${cardData.description}</div>` : ''}
+    ` : ''}
+</div>`,
+                        speaker: ChatMessage.getSpeaker({ alias: 'Мастер Игр' }),
+                    }).catch(() => {});
 
-                        // Подсвечиваем выбранную карту с пульсацией (используем механизм из HUD)
-                        const img = slot.find('.card-img');
-                        const sc = Utils.getSettingSafe("cardSelectionScale", 1.35); // Масштаб из настроек
-                        
-                        // Сохраняем оригинальные размеры
-                        const originalWidth = slot.css('width') || "180px";
-                        const originalHeight = slot.css('height') || "270px";
-                        slot.attr('data-original-width', originalWidth);
-                        slot.attr('data-original-height', originalHeight);
-                        
-                        // Вычисляем новые размеры как в HUD
-                        const baseWidth = 180;
-                        const baseHeight = 270;
-                        const newWidth = Math.round(baseWidth * sc);
-                        const newHeight = Math.round(baseHeight * sc);
-                        
-                        // Применяем плавный переход и новые размеры
-                        slot.css({
-                            'transition': 'width 0.3s ease, height 0.3s ease, filter 0.2s ease, transform 0.3s ease',
-                            'width': `${newWidth}px`,
-                            'height': `${newHeight}px`
-                        });
-                        
-                        // Применяем трансформацию как в HUD без дополнительного смещения
-                        slot.css({
-                            'transform': `perspective(1200px)`,
-                            'z-index': '1000',
-                            'filter': 'drop-shadow(0 15px 25px rgba(0,0,0,0.7)) brightness(1.08) contrast(1.1)'
-                        });
-                        
-                        // Убираем пульсацию - просто оставляем тень
+                    // Запрос к ГМу — не блокирует таймер закрытия
+                    try {
+                        const gmUser = game.users.find(u => u.isGM && u.active);
+                        if (gmUser) {
+                            const result = await gmUser.query(
+                                `${MODULE_ID}.passCardToPlayer`,
+                                {
+                                    cardId:     cardData.id,
+                                    cardName:   cardData.name,
+                                    cardFront:  cardData.front,
+                                    cardBack:   cardData.back,
+                                    cardDesc:   cardData.description,
+                                    deckId:     deck.id,
+                                    deckName:   deck.name,
+                                    playerId:   game.user.id,
+                                    playerName: game.user.name,
+                                    faceDown,
+                                },
+                                { timeout: 10000 }
+                            );
 
-                        // Показываем лицевую сторону с анимацией переворота
-                        const imgElement = slot.find('.card-img')[0];
-                        if (imgElement && card.img) {
-                            // Анимация переворота карты
-                            $(imgElement).css({
-                                'transform': 'rotateY(90deg)',
-                                'transition': 'transform 0.3s ease-in'
-                            });
-                            
-                            setTimeout(() => {
-                                imgElement.src = card.img;
-                                $(imgElement).css({
-                                    'transform': 'rotateY(0deg)',
-                                    'transition': 'transform 0.3s ease-out'
-                                });
-                            }, 300);
-                        }
-
-                        // Отправляем сообщение о выборе
-                        const messageContent = `
-                            <div style="
-                                text-align: center;
-                                padding: 15px;
-                                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-                                border: 2px solid #543;
-                                border-radius: 10px;
-                                color: #f0e6d2;
-                            ">
-                                <h3 style="color: #ffd700; margin-bottom: 10px; font-family: 'Cinzel', serif;">
-                                    🎴 Карта выбрана! 🎴
-                                </h3>
-                                <p><strong>${game.user.name}</strong> выбрал карту из колоды <strong>${deck.name}</strong></p>
-                                ${card.img ? `<img src="${card.img}" style="max-width: 250px; border: 3px solid #543; border-radius: 8px;"/>` : ''}
-                                <h4 style="color: #ffd700; margin: 8px 0; font-family: 'Cinzel', serif;">${card.name}</h4>
-                                ${card.description ? `<p style="font-style: italic; color: #d4c5a0;">${card.description}</p>` : ''}
-                            </div>
-                        `;
-
-                        ChatMessage.create({
-                            content: messageContent,
-                            speaker: ChatMessage.getSpeaker({ alias: "Мастер Игр" })
-                        });
-
-                        // Отправляем запрос ГМу для передачи карты
-                        try {
-                            const gmUser = game.users.find(u => u.isGM && u.active);
-                            if (gmUser) {
-                                const result = await gmUser.query(`${MODULE_ID}.passCardToPlayer`, {
-                                    cardId: card.id,
-                                    cardName: card.name,
-                                    deckId: deck.id,
-                                    playerId: game.user.id
-                                });
-                                
-                                if (result.success) {
-                                    ui.notifications.info(`Карта "${card.name}" добавлена в вашу руку!`);
-                                    
-                                    // Обновляем HUD игрока
-                                    try {
-                                        // Находим свою руку для обновления HUD
-                                        const allCards = game.cards?.contents || [];
-                                        const playerHand = allCards.find(c => 
-                                            c.name.toLowerCase().includes(game.user.name.toLowerCase())
-                                        );
-                                        
-                                        if (playerHand) {
-                                            console.log(`[${MODULE_ID}] Card requested by ${game.user.name}, their HUD should update automatically via hooks`);
-                                            // Не вызываем renderCards здесь - пусть хуки обновят HUD на стороне игрока
-                                        } else {
-                                            console.warn(`[${MODULE_ID}] PokerHandHUD or player hand not available for local update`);
-                                        }
-                                    } catch (hudError) {
-                                        console.warn(`[${MODULE_ID}] Failed to update local HUD:`, hudError);
-                                    }
-                                } else {
-                                    ui.notifications.error(`Не удалось передать карту: ${result.error}`);
-                                }
+                            if (result?.success) {
+                                ui.notifications.info(
+                                    faceDown
+                                        ? 'Закрытая карта добавлена в руку. Раскроется при розыгрыше.'
+                                        : `Карта "${cardData.name}" добавлена в вашу руку!`
+                                );
                             } else {
-                                console.warn(`[${MODULE_ID}] No active GM found to pass card`);
-                                ui.notifications.error(`ГМ не найден для передачи карты`);
+                                ui.notifications.error(`Ошибка: ${result?.error || '?'}`);
                             }
-                        } catch (passError) {
-                            console.error(`[${MODULE_ID}] Failed to request card pass:`, passError);
-                            ui.notifications.error(`Не удалось передать карту в руку: ${passError.message}`);
                         }
-
-                        // Закрываем диалог с улучшенной анимацией через заданное время
-                        const closeDelay = Utils.getSettingSafe("cardSelectionCloseDelay", 8) * 1000; // Конвертируем в миллисекунды
-                        
-                        // Сохраняем ссылку на диалог для проверки
-                        const closeTimeout = setTimeout(() => {
-                            // Проверяем что диалог еще не закрыт
-                            if (dialog && dialog.rendered && !dialog._closing) {
-                                const dialogElement = dialog.element;
-                                if (dialogElement) {
-                                    $(dialogElement).animate({
-                                        opacity: 0,
-                                        transform: 'scale(0.8) rotateZ(-5deg)',
-                                        filter: 'blur(3px)'
-                                    }, 400, 'swing', () => {
-                                        if (dialog && !dialog._closing) {
-                                            dialog._closing = true;
-                                            dialog.close();
-                                        }
-                                    });
-                                } else {
-                                    if (dialog && !dialog._closing) {
-                                        dialog._closing = true;
-                                        dialog.close();
-                                    }
-                                }
-                            }
-                        }, closeDelay);
-                        
-                        // Сохраняем timeout для возможной отмены
-                        dialog._closeTimeout = closeTimeout;
+                    } catch (passErr) {
+                        console.error(`[${MODULE_ID}] passCard query:`, passErr);
+                        ui.notifications.error('Ошибка при передаче карты: ' + passErr.message);
                     }
                 });
-            }
+            },
         });
 
-        // Открываем диалог
         dialog.render(true);
-        
         return { success: true };
     };
-    
-    // Регистрируем query для передачи карты игроку (только для ГМа)
-    CONFIG.queries[`${MODULE_ID}.passCardToPlayer`] = async (queryData, { timeout }) => {
-        // Проверяем что это ГМ
-        if (!game.user.isGM) {
-            return { success: false, error: 'Только ГМ может передавать карты' };
-        }
-        
-        const { cardId, playerId, cardName, deckId } = queryData;
-        
+
+    // ── passCardToPlayer (выполняется на клиенте ГМА) ──────────────────────────
+    CONFIG.queries[`${MODULE_ID}.passCardToPlayer`] = async (queryData) => {
+        if (!game.user.isGM) return { success: false, error: 'Только ГМ' };
+
+        const { cardId, cardName, cardFront, cardDesc, deckId, deckName, playerId, playerName, faceDown } = queryData;
+
         try {
-            console.log(`[${MODULE_ID}] GM received card pass request:`, { cardId, playerId, cardName, deckId });
-            
-            let card = null;
-            
-            // Метод 1: Пробуем найти по ID
-            if (cardId) {
-                card = game.cards.get(cardId);
-                console.log(`[${MODULE_ID}] Card lookup by ID ${cardId}:`, card ? 'Found' : 'Not found');
-            }
-            
-            // Метод 2: Ищем по имени в колоде
+            let card = cardId ? game.cards.get(cardId) : null;
             if (!card && cardName && deckId) {
-                const deck = game.cards.get(deckId);
-                if (deck && deck.cards) {
-                    card = Array.from(deck.cards.values()).find(c => c.name === cardName);
-                    console.log(`[${MODULE_ID}] Card lookup by name "${cardName}" in deck "${deck.name}":`, card ? 'Found' : 'Not found');
-                }
+                const deckDoc = game.cards.get(deckId);
+                if (deckDoc?.cards) card = [...deckDoc.cards.values()].find(c => c.name === cardName);
             }
-            
-            // Метод 3: Ищем по имени во всех картах
-            if (!card && cardName) {
-                const allCards = game.cards?.contents || [];
-                card = allCards.find(c => c.name === cardName);
-                console.log(`[${MODULE_ID}] Card lookup by name "${cardName}" in all cards:`, card ? 'Found' : 'Not found');
-            }
-            
-            if (!card) {
-                return { success: false, error: `Карта "${cardName}" не найдена` };
-            }
-            
-            // Находим игрока
+            if (!card && cardName) card = (game.cards?.contents || []).find(c => c.name === cardName);
+            if (!card) return { success: false, error: `Карта "${cardName}" не найдена` };
+
             const player = game.users.get(playerId);
-            if (!player) {
-                return { success: false, error: 'Игрок не найден' };
-            }
-            
-            // Передаем карту
-            const success = await gmCardDistributor.passCardToPlayer(card, player, deckId);
-            
-            if (success) {
-                return { success: true };
-            } else {
-                return { success: false, error: 'Не удалось передать карту' };
-            }
-            
-        } catch (error) {
-            console.error(`[${MODULE_ID}] Error in passCardToPlayer query:`, error);
-            return { success: false, error: error.message };
+            if (!player) return { success: false, error: 'Игрок не найден' };
+
+            const success = await gmCardDistributor.passCardToPlayer(card, player, faceDown);
+            if (!success) return { success: false, error: 'Не удалось передать карту' };
+
+            // Шёпот ГМу
+            ChatMessage.create({
+                content: `
+<div style="
+    padding:10px 12px;
+    background:rgba(15,10,5,0.95); border:1px solid rgba(255,215,0,0.4);
+    border-radius:8px; color:#f0e6d2; font-family:'Signika',sans-serif;
+">
+    <div style="color:#ffd700;font-weight:bold;margin-bottom:6px;font-size:11px;">📋 Инфо для ГМа</div>
+    <p style="margin:0 0 7px;font-size:12px;">
+        <strong>${playerName}</strong> взял карту из <strong>${deckName}</strong>:
+    </p>
+    <div style="display:flex;align-items:center;gap:9px;">
+        ${cardFront ? `<img src="${cardFront}" style="width:44px;height:66px;object-fit:contain;border:1px solid #543;border-radius:4px;flex-shrink:0;">` : ''}
+        <div>
+            <div style="color:#ffd700;font-weight:bold;font-size:12px;">${cardName}</div>
+            ${cardDesc ? `<div style="color:#8a7a65;font-size:11px;margin-top:2px;">${cardDesc}</div>` : ''}
+            <div style="
+                margin-top:5px; padding:2px 7px; border-radius:4px;
+                font-size:10px; display:inline-block;
+                background:${faceDown ? 'rgba(255,200,0,0.1)' : 'rgba(76,175,80,0.1)'};
+                color:${faceDown ? '#f0d060' : '#90c890'};
+            ">${faceDown ? '🙈 Карта закрыта в руке' : '👁 Карта открыта в руке'}</div>
+        </div>
+    </div>
+</div>`,
+                whisper: [game.user.id],
+                speaker: ChatMessage.getSpeaker({ alias: 'Система' }),
+            }).catch(() => {});
+
+            return { success: true };
+        } catch (err) {
+            console.error(`[${MODULE_ID}] passCardToPlayer:`, err);
+            return { success: false, error: err.message };
         }
     };
-    
-    console.log(`[${MODULE_ID}] Registered queries: ${MODULE_ID}.showCardDialog, ${MODULE_ID}.passCardToPlayer`);
+
 });
 
-// Отключаем проблемный renderSceneControls и используем только надежные методы
-// Hooks.on('renderSceneControls', (controls, html) => {
-//     if (!game.user.isGM) return;
-//     console.warn(`[${MODULE_ID}] Scene controls hook disabled due to compatibility issues`);
-// });
-
-// Добавляем кнопку в навигационную панель для большей видимости
-Hooks.on('renderNavigation', (nav, html) => {
-    if (!game.user.isGM) return;
-
+// ─── Плавающая кнопка ─────────────────────────────────────────────────────────
+Hooks.on('renderNavigation', () => {
+    if (!game.user.isGM || $('#gm-card-distributor-floating').length) return;
     try {
-        // Создаем плавающую кнопку для ГМа
-        const floatingButton = $(`
-            <div id="gm-card-distributor-floating" style="
-                position: fixed;
-                top: 50%;
-                right: 20px;
-                transform: translateY(-50%);
-                z-index: 1000;
-                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-                border: 2px solid #543;
-                border-radius: 10px;
-                padding: 15px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-family: 'Signika', sans-serif;
-            ">
-                <div style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 8px;
-                    color: #f0e6d2;
-                ">
-                    <i class="fas fa-layer-group" style="font-size: 24px; color: #ffd700;"></i>
-                    <span style="font-size: 12px; font-weight: bold; text-align: center;">
-                        Раздать<br>карты
-                    </span>
-                </div>
-            </div>
-        `);
-
-        floatingButton.on('click', () => {
-            gmCardDistributor.showDistributionDialog();
-        });
-
-        floatingButton.on('mouseenter', function() {
-            $(this).css({
-                'transform': 'translateY(-50%) scale(1.1)',
-                'box-shadow': '0 6px 20px rgba(0,0,0,0.7)',
-                'border-color': '#ffd700'
-            });
-        });
-
-        floatingButton.on('mouseleave', function() {
-            $(this).css({
-                'transform': 'translateY(-50%) scale(1)',
-                'box-shadow': '0 4px 15px rgba(0,0,0,0.5)',
-                'border-color': '#543'
-            });
-        });
-
-        // Добавляем кнопку на страницу
-        $('body').append(floatingButton);
-    } catch (error) {
-        console.warn(`[${MODULE_ID}] Failed to add floating button:`, error);
+        const $btn = $(`
+<div id="gm-card-distributor-floating" style="
+    position:fixed; top:50%; right:20px; transform:translateY(-50%);
+    z-index:1000; background:linear-gradient(135deg,#2c3e50,#34495e);
+    border:2px solid #543; border-radius:10px; padding:13px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.5);
+    cursor:pointer; transition:all 0.25s; font-family:'Signika',sans-serif;
+">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#f0e6d2;">
+        <i class="fas fa-layer-group" style="font-size:20px;color:#ffd700;"></i>
+        <span style="font-size:10px;font-weight:bold;text-align:center;">Раздать<br>карты</span>
+    </div>
+</div>`);
+        $btn.on('click', () => gmCardDistributor.showDistributionDialog());
+        $btn.on('mouseenter', function () { $(this).css({ transform: 'translateY(-50%) scale(1.1)', borderColor: '#ffd700' }); });
+        $btn.on('mouseleave', function () { $(this).css({ transform: 'translateY(-50%) scale(1)',  borderColor: '#543'    }); });
+        $('body').append($btn);
+    } catch (err) {
+        console.warn(`[${MODULE_ID}] floating button:`, err);
     }
 });
-
-// Резерв: оставляем кнопку в PlayerList как запасной вариант - УДАЛЕНО
-// Hooks.on('renderPlayerList', (app, html, data) => {
-//     if (!game.user.isGM) return;
-// 
-//     try {
-//         // Проверяем, нет ли уже других кнопок
-//         if ($('#gm-card-distributor-floating').length || $('#gm-card-distributor-game-controls').length) {
-//             return; // Кнопка уже добавлена в другом месте
-//         }
-// 
-//         const gmButton = $(`
-//             <button id="gm-card-distributor-btn" style="
-//                 margin: 5px;
-//                 padding: 8px 12px;
-//                 background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-//                 border: 1px solid #543;
-//                 border-radius: 5px;
-//                 color: #f0e6d2;
-//                 cursor: pointer;
-//                 font-family: 'Signika', sans-serif;
-//                 font-size: 12px;
-//                 transition: all 0.3s ease;
-//             " title="Раздать карты игрокам">
-//                 🎴 Раздать карты
-//             </button>
-//         `);
-// 
-//         gmButton.on('click', () => {
-//             gmCardDistributor.showDistributionDialog();
-//         });
-// 
-//         gmButton.on('mouseenter', function() {
-//             $(this).css({
-//                 'background': 'linear-gradient(135deg, #34495e 0%, #2c3e50 100%)',
-//                 'transform': 'translateY(-1px)',
-//                 'box-shadow': '0 2px 5px rgba(0,0,0,0.3)'
-//             });
-//         });
-// 
-//         gmButton.on('mouseleave', function() {
-//             $(this).css({
-//                 'background': 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
-//                 'transform': 'translateY(0)',
-//                 'box-shadow': 'none'
-//             });
-//         });
-// 
-//         html.find('.directory-header').append(gmButton);
-//     } catch (error) {
-//         console.warn(`[${MODULE_ID}] Failed to add button to player list:`, error);
-//     }
-// });
 
 export { GMCardDistributor, gmCardDistributor };
