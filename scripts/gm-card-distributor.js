@@ -332,7 +332,7 @@ Hooks.on('init', () => {
 
         // ИЗМЕНЕНИЕ v2.6: используем 3 сек как дефолт вместо 8,
         // и таймер стартует СРАЗУ при клике, до завершения query
-        const closeDelay = Utils.getSettingSafe('cardSelectionCloseDelay', 3) * 1000;
+        const closeDelay = Utils.getSettingSafe('cardSelectionCloseDelay', 1) * 100;
         const sc         = Utils.getSettingSafe('cardSelectionScale', 1.35);
 
         const CARD_W = 160;
@@ -478,7 +478,7 @@ Hooks.on('init', () => {
                     dialog._closeTimeout = setTimeout(() => {
                         if (dialog?.rendered && !dialog._closing) {
                             dialog._closing = true;
-                            $(dialog.element).animate({ opacity: 0 }, 400, () => dialog.close());
+                            $(dialog.element).animate({ opacity: 0 }, 200, () => dialog.close());
                         }
                     }, closeDelay);
 
