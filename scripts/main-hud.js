@@ -32,18 +32,18 @@ const PokerHandHUD = {
         try {
             // Проверяем есть ли у пользователя назначенная рука
             const userAssignment = HandAssignmentSystem.getUserAssignedHand(game.user.id);
-            
+
             if (!userAssignment) {
                 // Не инициализируем HUD если нет назначения
                 return;
             }
-            
+
             // Reset expanded card state
             ExpandedCardManager.reset();
-            
+
             // Initialize UI settings
             UIManager.setupSettingsIntegration();
-            
+
             // Select card hand
             const hand = await CardSystem.selectCardHand();
             if (!hand) {
@@ -52,9 +52,9 @@ const PokerHandHUD = {
                 ui.notifications.error("Пожалуйста, убедитесь что у вас есть доступ к руке карт.");
                 throw error;
             }
-            
+
             console.log(`[${MODULE_ID}] Selected hand: ${hand.name} (${hand.id})`);
-            
+
             // Store in user-specific state instead of global state
             userStateManager.updateCurrentUserHand(hand);
             pokerHandGlobalState.hand = hand; // Keep for backward compatibility
@@ -62,14 +62,14 @@ const PokerHandHUD = {
             // Create and load configuration
             let config = ConfigSystem.createDefaultConfig();
             config = ConfigSystem.loadSettings(config);
-            
+
             // Store in user-specific state
             userStateManager.updateCurrentUserConfig(config);
             pokerHandGlobalState.config = config; // Keep for backward compatibility
-            
+
             // Load sound effects
             SFX.load();
-            
+
             // Build HTML
             this.buildHTML(config);
 
@@ -84,13 +84,13 @@ const PokerHandHUD = {
 
             // Inject CSS
             this.injectCSS(config);
-            
+
             // Setup cleanup function
             this.setupCleanup();
-            
+
             // Setup real-time card updates
             CardSystem.setupCardUpdates();
-            
+
         } catch (error) {
             console.error(`[${MODULE_ID}] Failed to initialize HUD:`, error);
             throw error;
@@ -98,7 +98,7 @@ const PokerHandHUD = {
             throw e;
         }
     },
-    
+
     /**
      * Проверяет должен ли HUD быть доступен пользователю
      * @returns {boolean}
@@ -107,7 +107,7 @@ const PokerHandHUD = {
         const userAssignment = HandAssignmentSystem.getUserAssignedHand(game.user.id);
         return !!userAssignment;
     },
-    
+
     /**
      * Создает кнопку закладки если у пользователя есть назначенная рука
      */
@@ -116,18 +116,18 @@ const PokerHandHUD = {
             console.log(`[${MODULE_ID}] User ${game.user.name} has no hand assignment. No bookmark created.`);
             return;
         }
-        
+
         // Проверяем настройку включения закладки
         const bookmarkEnabled = Utils.getSettingSafe("bookmarkEnabled", false);
         if (!bookmarkEnabled) {
             console.log(`[${MODULE_ID}] Bookmark toggle is disabled in settings. No bookmark created.`);
             return;
         }
-        
+
         // Создаем кнопку закладки
         this.createBookmark();
     },
-    
+
     /**
      * Создает кнопку закладки
      */
@@ -140,21 +140,21 @@ const PokerHandHUD = {
                 container.style.display = "none";
                 bookmark.classList.add("collapsed");
             }
-            
+
             bookmark.addEventListener("click", () => {
                 SFX.play(SFX.sounds.click);
                 const container = document.getElementById("poker-hand-container");
                 if (container) {
                     const isCollapsed = bookmark.classList.contains("collapsed");
-                    
+
                     if (isCollapsed) {
                         // Opening - show container and animate entrance
                         container.style.display = "flex";
                         bookmark.classList.remove("collapsed");
-                        
+
                         // Reset expanded card state when opening HUD
                         ExpandedCardManager.reset();
-                        
+
                         // Force reset all card styles to normal state
                         const cards = container.querySelectorAll(".poker-card");
                         cards.forEach(card => {
@@ -162,7 +162,7 @@ const PokerHandHUD = {
                             card.classList.remove("expanded", "face-down");
                             card.style.cssText = '';
                         });
-                        
+
                         // Animate entrance
                         this.animateEntrance(Array.from(container.querySelectorAll(".poker-card")));
                     } else {
@@ -170,7 +170,7 @@ const PokerHandHUD = {
                         this.animateExit(Array.from(container.querySelectorAll(".poker-card")), () => {
                             container.style.display = "none";
                             bookmark.classList.add("collapsed");
-                            
+
                             // Reset expanded card state when closing HUD
                             ExpandedCardManager.reset();
                         });
@@ -179,7 +179,7 @@ const PokerHandHUD = {
             });
         }
     },
-    
+
     /**
      * Создает HTML структуру HUD
      * @param {Object} config - Конфигурация отображения
@@ -190,7 +190,7 @@ const PokerHandHUD = {
             if (!pokerHandGlobalState.hand) {
                 throw new Error("Hand not initialized");
             }
-            
+
             const hudHtml = `
                 <div id="poker-hand-container" class="poker-hand-container" style="--hand-width: ${config.handLayout.maxVisibleCards * config.handLayout.spacing + 100}px; --card-width: ${config.cardVisuals.width}px; --card-height: ${config.cardVisuals.height}px; --card-spacing: ${config.handLayout.spacing}px; --arc-height: ${config.handLayout.arcHeight}px; --rotation-factor: ${config.handLayout.rotationFactor}deg;">
                     <div class="hand-area" data-hand-id="${pokerHandGlobalState.hand.id}">
@@ -211,23 +211,23 @@ const PokerHandHUD = {
 
             // Add new container
             document.body.appendChild(document.createRange().createContextualFragment(hudHtml));
-            
+
         } catch (error) {
             console.error(`[${MODULE_ID}] Failed to build HTML:`, error);
             throw error;
         }
     },
-    
+
     setupBookmarkToggle() {
         // Проверяем есть ли у пользователя назначенная рука
         if (!this.shouldUserHaveHUD()) {
             console.log(`[${MODULE_ID}] User ${game.user.name} has no hand assignment. Bookmark toggle disabled.`);
             return;
         }
-        
+
         // Проверяем настройку включения закладки
         const bookmarkEnabled = Utils.getSettingSafe("bookmarkEnabled", false);
-        
+
         // Устанавливаем начальное состояние HUD
         const container = document.getElementById("poker-hand-container");
         if (container) {
@@ -237,48 +237,48 @@ const PokerHandHUD = {
                 container.style.display = "none";
             }
         }
-        
+
         // Если закладка выключена — ничего не настраиваем, HUD будет открываться шорткатом
         if (!bookmarkEnabled) {
             return;
         }
-        
+
         const bookmark = document.getElementById("hud-bookmark-toggle");
         if (!bookmark) return;
-        
+
         bookmark.classList.add("collapsed");
-        
+
         bookmark.addEventListener("click", () => {
             SFX.play(SFX.sounds.click);
             const container = document.getElementById("poker-hand-container");
             if (!container) return;
-            
+
             const isCollapsed = container.style.display === "none";
-            
+
             if (isCollapsed) {
                 // Opening - show container and animate entrance
                 container.style.display = "flex";
                 bookmark.classList.remove("collapsed");
-                
+
                 // Reset expanded card state when opening HUD
                 ExpandedCardManager.reset();
-                
+
                 // Force reset all card styles to normal state
                 const cards = container.querySelectorAll(".poker-card");
                 cards.forEach(card => {
                     // Remove expanded class and inline styles
                     card.classList.remove("expanded", "face-down");
-                    
+
                     // Reset inline styles that might be set by expansion
                     card.style.width = "";
                     card.style.height = "";
                     card.style.filter = "";
-                    
+
                     // Reset data attributes that might have been modified
                     delete card.dataset.originalWidth;
                     delete card.dataset.originalHeight;
                 });
-                
+
                 // Trigger entrance animation when opening
                 if (pokerHandGlobalState.hand && pokerHandGlobalState.config && cards.length > 0) {
                     // Re-arrange cards first
@@ -291,14 +291,14 @@ const PokerHandHUD = {
                 this.animateExit(Array.from(container.querySelectorAll(".poker-card")), () => {
                     container.style.display = "none";
                     bookmark.classList.add("collapsed");
-                    
+
                     // Reset expanded card state when closing HUD
                     ExpandedCardManager.reset();
                 });
             }
         });
     },
-    
+
     /**
      * Анимирует скрытие карт с максимально плавной траекторией
      * @param {HTMLElement[]} cards - Массив элементов карт
@@ -306,31 +306,31 @@ const PokerHandHUD = {
      */
     animateExit(cards, callback) {
         const visible = Array.from(cards).filter(card => card.style.display !== "none");
-        
+
         // Animate each card to exit downward with ultra-smooth motion
         visible.forEach((card, index) => {
             const x = Number.parseFloat(card.dataset.xOffset) || 0;
             const y = Number.parseFloat(card.dataset.yOffset) || 0;
             const r = Number.parseFloat(card.dataset.rotation) || 0;
-            
+
             setTimeout(() => {
                 card.style.transition = "transform 500ms cubic-bezier(.4,0,.4,1), opacity 450ms ease-out";
                 card.style.opacity = "0";
                 card.style.transform = `translateX(${x}px) translateY(${y + 150}px) rotateZ(${r}deg)`;
-                
+
                 // Add face-down class for sleep effect
                 setTimeout(() => {
                     card.classList.add("face-down");
                 }, 200);
             }, index * 60); // Slightly slower for smoother cascade
         });
-        
+
         // Call callback after all animations complete
         setTimeout(() => {
             if (callback) callback();
         }, visible.length * 60 + 500);
     },
-    
+
     /**
      * Отображает карты из руки
      * @async
@@ -390,17 +390,17 @@ const PokerHandHUD = {
             if (!options.skipGlobalState) {
                 this.setupCardUpdates(hand, config, allCardElements);
             }
-            
+
             // Animate entrance
             this.animateEntrance(allCardElements, config);
-            
+
         } catch (error) {
             console.error(`[${MODULE_ID}] Failed to render cards:`, error);
             ui.notifications.error("Не удалось отобразить карты. Проверьте консоль для деталей.");
             throw error;
         }
     },
-    
+
     /**
      * Анимирует появление карт снизу с максимально плавной траекторией
      * @param {HTMLElement[]} cards - Массив элементов карт
@@ -410,57 +410,57 @@ const PokerHandHUD = {
         if (StateManager.getGlobalCollapsed()) {
             return;
         }
-        
+
         const visible = Array.from(cards).filter(card => card.style.display !== "none");
-        
+
         // Set initial state - cards start from bottom
         visible.forEach((card, index) => {
             const x = Number.parseFloat(card.dataset.xOffset) || 0;
             const y = Number.parseFloat(card.dataset.yOffset) || 0;
             const r = Number.parseFloat(card.dataset.rotation) || 0;
-            
+
             // Start position - below the final position
             card.style.opacity = "0";
             card.style.transform = `translateX(${x}px) translateY(${y + 200}px) rotateZ(${r}deg)`;
         });
-        
+
         // Animate each card with delay using ultra-smooth trajectory
         visible.forEach((card, index) => {
             const x = Number.parseFloat(card.dataset.xOffset) || 0;
             const y = Number.parseFloat(card.dataset.yOffset) || 0;
             const r = Number.parseFloat(card.dataset.rotation) || 0;
-            
+
             setTimeout(() => {
                 card.style.opacity = "1";
                 card.style.transition = "transform 600ms cubic-bezier(.25,1.05,.25,1.05), opacity 400ms ease-out";
                 // Move to intermediate position above final position with more lift
                 card.style.transform = `translateX(${x}px) translateY(${y - 15}px) rotateZ(${r}deg)`;
-                
+
                 setTimeout(() => {
                     // Ultra-smooth transition to final position
                     card.style.transition = "transform 500ms cubic-bezier(.15,.85,.15,1)";
                     card.style.transform = `translateX(${x}px) translateY(${y}px) rotateZ(${r}deg)`;
-                    
+
                     setTimeout(() => {
                         card.style.transition = "";
                     }, 500);
                 }, 600);
             }, (index + 1) * (config.animations?.entranceDelay || 120));
         });
-        
+
         // Add enhanced sparkle effects
         setTimeout(() => {
             this.createEntranceSparkles();
         }, visible.length * (config.animations?.entranceDelay || 120) + 200);
     },
-    
+
     /**
      * Создает улучшенные искровые эффекты при появлении
      */
     createEntranceSparkles() {
         const container = document.getElementById("poker-hand-container");
         if (!container) return;
-        
+
         const dust = document.createElement("div");
         dust.className = "sparkle-layer";
         dust.style.cssText = `
@@ -475,7 +475,7 @@ const PokerHandHUD = {
             overflow: visible;
         `;
         container.appendChild(dust);
-        
+
         // Create more sparkles with better distribution
         for (let i = 0; i < 18; i++) {
             const s = document.createElement("div");
@@ -499,11 +499,11 @@ const PokerHandHUD = {
             dust.appendChild(s);
             s.addEventListener("animationend", () => s.remove());
         }
-        
+
         // Remove dust container after longer duration for smoother effect
         setTimeout(() => dust.remove(), 1600);
     },
-    
+
     /**
      * Создает HTML элемент карты
      * @param {Object} card - Объект карты
@@ -514,54 +514,82 @@ const PokerHandHUD = {
      */
     createCardElement(card, index, config) {
         try {
-            if (!card || !card.id) {
-                throw new Error("Invalid card data");
-            }
+            if (!card || !card.id) throw new Error("Invalid card data");
+
+            // ── Закрытая карта? ────────────────────────────────────────────
+            // face === null означает что карта лежит рубашкой вверх.
+            // Игрок не должен знать что это за карта до розыгрыша.
+            const isFaceDown = card.face === null;
+
+            // Изображение для арта: если закрыта — берём рубашку, не фронт.
+            // card.img при face=null Foundry сам отдаёт рубашку, но мы явно
+            // подстраховываемся через faces[0].img чтобы не показать фронт случайно.
+            const artImage = isFaceDown
+                ? (card.back?.img
+                    || card.faces?.back?.src
+                    || Utils.getSettingSafe("defaultCardBackImage", "systems/dnd5e/ui/cards/back.webp"))
+                : (card.img || "");
+
+            // Отображаемое имя: "?" для закрытых карт
+            const displayName = isFaceDown ? "?" : (card.name || `Карта ${index + 1}`);
 
             const cardEl = document.createElement("div");
-            cardEl.className = "poker-card";
-            cardEl.dataset.cardId = card.id;
-            cardEl.dataset.index = index;
+            cardEl.className = "poker-card" + (isFaceDown ? " is-face-down" : "");
+            cardEl.dataset.cardId    = card.id;
+            cardEl.dataset.index     = index;
+            cardEl.dataset.isFaceDown = isFaceDown ? "1" : "0"; // для JS-проверок
 
             // Card back
             const cardBack = document.createElement("div");
             cardBack.className = "card-back";
-            
-            // Card art
+
+            // Card art — для закрытых карт backgroundImage = рубашка
             const cardArt = document.createElement("div");
             cardArt.className = "card-art";
-            if (card.img) {
-                cardArt.style.backgroundImage = `url('${card.img}')`;
-                cardArt.style.backgroundSize = "cover";
+            if (artImage) {
+                cardArt.style.backgroundImage  = `url('${artImage}')`;
+                cardArt.style.backgroundSize   = "cover";
                 cardArt.style.backgroundPosition = "center top";
             }
-            
+
             // Card text overlay
             const cardTextOverlay = document.createElement("div");
             cardTextOverlay.className = "card-text-overlay";
-            
-            // Card name
+
+            // Card name SVG
             const nameContainer = document.createElement("div");
             nameContainer.className = "card-name-container";
-            
-            const nameSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            nameSvg.setAttribute("class", "card-name-svg");
-            nameSvg.setAttribute("viewBox", "0 0 200 50");
-            
-            const namePath = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            namePath.setAttribute("x", "100");
-            namePath.setAttribute("y", "30");
-            namePath.setAttribute("text-anchor", "middle");
-            namePath.textContent = card.name || `Карта ${index + 1}`;
-            
-            nameSvg.appendChild(namePath);
-            nameContainer.appendChild(nameSvg);
+
+            if (isFaceDown) {
+                // Закрытая карта — показываем большой "?" вместо имени
+                nameContainer.innerHTML = `
+                <div style="
+                    font-size:52px; color:rgba(255,215,0,0.25);
+                    font-family:'Cinzel',serif; font-weight:bold;
+                    text-align:center; width:100%;
+                    pointer-events:none; user-select:none;
+                ">?</div>`;
+            } else {
+                // Открытая карта — обычный SVG с именем
+                const nameSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                nameSvg.setAttribute("class", "card-name-svg");
+                nameSvg.setAttribute("viewBox", "0 0 200 50");
+
+                const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                nameText.setAttribute("x", "100");
+                nameText.setAttribute("y", "30");
+                nameText.setAttribute("text-anchor", "middle");
+                nameText.textContent = displayName;
+
+                nameSvg.appendChild(nameText);
+                nameContainer.appendChild(nameSvg);
+            }
 
             // Shine effect
             const shine = document.createElement("div");
             shine.className = "shine";
 
-            // Selection indicators (simplified)
+            // Selection indicators
             const selectBadge = document.createElement("div");
             selectBadge.className = "select-badge";
             selectBadge.textContent = "✓";
@@ -569,7 +597,7 @@ const PokerHandHUD = {
             const selectUnderline = document.createElement("div");
             selectUnderline.className = "select-underline";
 
-            // Assemble card
+            // Assemble
             cardEl.appendChild(cardBack);
             cardEl.appendChild(cardArt);
             cardEl.appendChild(cardTextOverlay);
@@ -579,54 +607,54 @@ const PokerHandHUD = {
             cardEl.appendChild(selectUnderline);
 
             return cardEl;
-            
+
         } catch (error) {
             console.error(`[${MODULE_ID}] Failed to create card element:`, error);
             throw error;
         }
     },
-    
+
     arrangeCardsInFan(cards, config) {
         const visible = Array.from(cards).filter(card => card.style.display !== "none");
         const total = visible.length;
-        
+
         // Ensure handLayout exists with defaults
         const handLayout = config.handLayout || {
             spacing: 105,
             arcHeight: 5,
             rotationFactor: 5
         };
-        
+
         visible.forEach((card, index) => {
             const ni = index - (total - 1) / 2.0;
             const { spacing, arcHeight, rotationFactor } = handLayout;
-            
+
             const xOffset = ni * spacing;
             // Original formula from the source: creates proper arc shape
             const yOffset = Math.abs(ni) * (Math.abs(ni) * arcHeight);
             const rotation = ni * rotationFactor;
-            
+
             card.dataset.xOffset = xOffset;
             card.dataset.yOffset = yOffset;
             card.dataset.rotation = rotation;
             card.dataset.originalZIndex = index;
-            
+
             const base = (cx, cy, rot) => `translateX(${cx}px) translateY(${cy}px) rotateZ(${rot}deg)`;
             card.style.transform = base(xOffset, yOffset, rotation);
             card.style.zIndex = index;
         });
     },
-    
+
     setupCardUpdates(hand, config, allCardElements) {
         // Remove existing hooks to prevent duplicates
         if (pokerHandGlobalState._cardHooks) {
             pokerHandGlobalState._cardHooks.forEach(hookId => Hooks.off(hookId.event, hookId.id));
             pokerHandGlobalState._cardHooks = null;
         }
-        
+
         // Setup hooks for real-time updates
         const hooks = [];
-        
+
         // Hook for card updates
         const updateHook = Hooks.on("updateCard", (updatedCard) => {
             if (updatedCard.id !== hand.id) return;
@@ -634,9 +662,9 @@ const PokerHandHUD = {
             this.renderCards(hand, config);
         });
         hooks.push({ event: "updateCard", id: updateHook });
-        
+
         pokerHandGlobalState._cardHooks = hooks;
-        
+
         // Attach hover events to all cards
         allCardElements.forEach(cardEl => {
             // Get the card data for this element using correct ID
@@ -646,20 +674,20 @@ const PokerHandHUD = {
             attachHoverEvents(cardEl, cardData);
         });
     },
-    
+
     injectCSS(config) {
         const styleId = "poker-hand-styles";
         document.getElementById(styleId)?.remove();
-        
+
         const { cardVisuals, colors } = config;
         const accent = colors.accent || "#c0a060";
         const selGlow = colors.selectedGlow || "rgba(255,200,100,0.6)";
-        
+
         // Get custom URLs from settings
         const baseImage = Utils.getSettingSafe("cardBaseImageUrl", "") || cardVisuals.baseImage;
         const backImage = Utils.getSettingSafe("clientBackCustomUrl", "") || Utils.getSettingSafe("cardBackImageUrl", "") || cardVisuals.backImage;
         const maskImage = Utils.getSettingSafe("cardMaskImageUrl", "") || cardVisuals.artMaskImage;
-        
+
         const cardBaseStyle = baseImage
             ? `background-image: url('${baseImage}'); background-size: cover; background-position: center;`
             : `background: radial-gradient(circle, #4a4a5a, #2a2a3a), repeating-linear-gradient(-45deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 2px, transparent 2px, transparent 6px); border: 1px solid rgba(200, 200, 255, 0.2); border-radius: 11px; box-sizing: border-box;`;
@@ -670,7 +698,7 @@ const PokerHandHUD = {
 
         const cardArtMaskStyle = maskImage
             ? `mask-image: url('${maskImage}'); -webkit-mask-image: url('${maskImage}');`
-            : config.cardVisuals?.disableGradientMask 
+            : config.cardVisuals?.disableGradientMask
                 ? `mask-image: none; -webkit-mask-image: none;`
                 : `mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);`;
 
@@ -741,66 +769,66 @@ const PokerHandHUD = {
 
         #poker-hand-container.collapsed { bottom: -9999px !important; pointer-events: none; }
         `;
-        
+
         const style = document.createElement("style");
-        style.id = styleId; 
-        style.innerHTML = css; 
+        style.id = styleId;
+        style.innerHTML = css;
         document.head.appendChild(style);
     },
-    
+
     setupCleanup() {
         pokerHandGlobalState.cleanup = () => {
             document.getElementById("poker-hand-container")?.remove();
             document.getElementById("poker-hand-styles")?.remove();
-            
+
             // Clear expanded card state
             ExpandedCardManager.reset();
-            
+
             // Clear context menus
             document.querySelectorAll(".card-context-menu").forEach(menu => menu.remove());
-            
+
             // Clear confirmation button
             if (pokerHandGlobalState.confirmButton) {
                 pokerHandGlobalState.confirmButton.remove();
                 pokerHandGlobalState.confirmButton = null;
             }
-            
+
             // Clear tooltip
             pokerHandGlobalState.cleanupTooltip?.();
-            
+
             // Clear retract timer
             if (pokerHandGlobalState.cancelRetractTimer) {
                 pokerHandGlobalState.cancelRetractTimer();
             }
-            
+
             // Clear card hooks
             if (pokerHandGlobalState._cardHooks) {
                 pokerHandGlobalState._cardHooks.forEach(hookId => Hooks.off(hookId.event, hookId.id));
                 pokerHandGlobalState._cardHooks = null;
             }
-            
+
             if (pokerHandGlobalState.sparkleInterval) {
                 clearInterval(pokerHandGlobalState.sparkleInterval);
                 pokerHandGlobalState.sparkleInterval = null;
             }
             if (pokerHandGlobalState._sparkleHandlers) {
                 const { enter, leave, container: c } = pokerHandGlobalState._sparkleHandlers;
-                if (c) { 
-                    c.removeEventListener("mouseenter", enter); 
-                    c.removeEventListener("mouseleave", leave); 
+                if (c) {
+                    c.removeEventListener("mouseenter", enter);
+                    c.removeEventListener("mouseleave", leave);
                 }
                 pokerHandGlobalState._sparkleHandlers = null;
             }
         };
     },
-    
+
     /**
      * Обновляет HUD с новой рукой
      * @async
      */
     async refreshHand() {
         console.log(`[${MODULE_ID}] Refreshing HUD with new hand assignment...`);
-        
+
         try {
             // Выбираем новую руку
             const hand = await CardSystem.selectCardHand();
@@ -808,13 +836,13 @@ const PokerHandHUD = {
                 console.log(`[${MODULE_ID}] No hand available after refresh`);
                 return;
             }
-            
+
             console.log(`[${MODULE_ID}] Refreshed hand: ${hand.name} (${hand.id})`);
-            
+
             // Создаем и загружаем конфигурацию (как в init)
             let config = ConfigSystem.createDefaultConfig();
             config = ConfigSystem.loadSettings(config);
-            
+
             // Проверяем существует ли контейнер
             const container = document.querySelector(".cards-container");
             if (container) {
@@ -824,28 +852,28 @@ const PokerHandHUD = {
             } else {
                 // Если контейнера нет, нужно полностью реинициализировать HUD
                 console.log(`[${MODULE_ID}] No container found, reinitializing HUD...`);
-                
+
                 // Сначала очищаем если есть что чистить
                 if (pokerHandGlobalState.cleanup) {
                     pokerHandGlobalState.cleanup();
                 }
-                
+
                 // Обновляем глобальное состояние
                 pokerHandGlobalState.hand = hand;
                 pokerHandGlobalState.config = config;
-                
+
                 // Вызываем полную инициализацию как в методе init
                 await this.initializeHUD(hand, config);
             }
-            
+
             console.log(`[${MODULE_ID}] HUD refreshed successfully`);
-            
+
         } catch (error) {
             console.error(`[${MODULE_ID}] Failed to refresh HUD:`, error);
             ui.notifications.error("Failed to refresh hand assignment");
         }
     },
-    
+
     /**
      * Инициализирует HUD с рукой и конфигурацией
      * @async
@@ -854,23 +882,23 @@ const PokerHandHUD = {
      */
     async initializeHUD(hand, config) {
         console.log(`[${MODULE_ID}] Initializing HUD with hand: ${hand.name}`);
-        
+
         // Store in user-specific state
         userStateManager.updateCurrentUserHand(hand);
         userStateManager.updateCurrentUserConfig(config);
-        
+
         // Build HTML structure
         this.buildHTML(config);
-        
+
         // Render cards
         await this.renderCards(hand, config);
-        
+
         // Setup bookmark toggle
         this.setupBookmarkToggle();
-        
+
         // Inject CSS
         this.injectCSS();
-        
+
         console.log(`[${MODULE_ID}] HUD reinitialized successfully`);
     },
 };
@@ -885,13 +913,13 @@ Hooks.on('init', () => {
         console.log(`[${MODULE_ID}] Received refresh query:`, queryData);
         console.log(`[${MODULE_ID}] Current user: ${game.user.name} (${game.user.id})`);
         console.log(`[${MODULE_ID}] Refresh from user: ${queryData.userId}`);
-        
+
         try {
             // Если есть назначения в данных, используем их
             if (queryData.assignments) {
                 const userAssignment = queryData.assignments[game.user.id];
                 console.log(`[${MODULE_ID}] Found assignment for current user:`, userAssignment);
-                
+
                 // Отправляем событие с правильными данными
                 window.dispatchEvent(new CustomEvent('pokerHandAssignmentChanged', {
                     detail: {
@@ -899,14 +927,14 @@ Hooks.on('init', () => {
                         newHand: userAssignment || ''
                     }
                 }));
-                
+
                 return { success: true, message: 'HUD refreshed successfully' };
             } else {
                 // Если нет назначений, просто обновляем HUD
                 setTimeout(() => {
                     PokerHandHUD.refreshHand();
                 }, 200);
-                
+
                 return { success: true, message: 'HUD refreshed without assignments' };
             }
         } catch (error) {
@@ -921,7 +949,7 @@ Hooks.on('ready', () => {
     // Добавляем обработчик кастомного события
     window.addEventListener('pokerHandAssignmentChanged', (event) => {
         console.log(`[${MODULE_ID}] Assignment changed event:`, event.detail);
-        
+
         // Обновляем HUD с небольшой задержкой чтобы настройки применились
         setTimeout(() => {
             PokerHandHUD.refreshHand();

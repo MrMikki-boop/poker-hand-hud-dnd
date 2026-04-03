@@ -12,69 +12,81 @@ import { SFX } from './sound-effects.js';
 import { CardSystem } from './card-system.js';
 
 function smartPlaceTooltip(cardElement, card) {
-    // Check if card exists and has description
-    if (!card || !card.description) return;
-    
-    // Remove existing tooltip
-    const existingTooltip = document.querySelector('[data-poker-tooltip]');
-    if (existingTooltip) {
-        existingTooltip.remove();
-    }
-    
+    // Нет карты — нет тултипа
+    if (!card) return;
+
+    // ── Закрытая карта: скрываем личность ──────────────────────────────
+    const isFaceDown = card.face === null || cardElement.dataset.isFaceDown === "1";
+
+    // Убираем предыдущий тултип
+    const existing = document.querySelector('[data-poker-tooltip]');
+    if (existing) existing.remove();
+
+    // Если нечего показывать (открытая карта без описания) — выходим
+    if (!isFaceDown && !card.description) return;
+
     const cardRect = cardElement.getBoundingClientRect();
-    const tooltip = document.createElement("div");
+    const tooltip  = document.createElement("div");
     tooltip.setAttribute('data-poker-tooltip', 'true');
     tooltip.style.cssText = `
         position: fixed;
         background: rgba(10,5,0,0.92);
         border: 2px solid #c0a060;
         color: #f0e6d2;
-        padding: 8px;
+        padding: 8px 12px;
         border-radius: 6px;
         font-family: "Signika", sans-serif;
         font-size: 12px;
         z-index: 10000;
         pointer-events: none;
-        max-width: 300px;
+        max-width: 260px;
         opacity: 0;
         transition: opacity 0.2s ease;
     `;
-    
-    tooltip.innerHTML = `
-        <div style="font-weight: 600; margin-bottom: 4px;">${card.name || 'Без названия'}</div>
-        <div>${card.description}</div>
-    `;
-    
+
+    if (isFaceDown) {
+        // Закрытая карта — только нейтральное сообщение
+        tooltip.innerHTML = `
+            <div style="
+                display:flex; align-items:center; gap:8px;
+                color:rgba(255,215,0,0.6); font-size:13px;
+            ">
+                <span style="font-size:22px;">🙈</span>
+                <span style="font-style:italic;">Закрытая карта<br>
+                    <span style="font-size:10px; color:#8a7a65;">
+                        Раскроется при розыгрыше
+                    </span>
+                </span>
+            </div>`;
+    } else {
+        // Открытая карта с описанием
+        tooltip.innerHTML = `
+            <div style="font-weight:600; margin-bottom:4px;">${card.name || 'Без названия'}</div>
+            <div>${card.description}</div>`;
+    }
+
     document.body.appendChild(tooltip);
-    
-    // Position tooltip
+
+    // Позиционирование
     const tooltipRect = tooltip.getBoundingClientRect();
     let left = cardRect.left + (cardRect.width - tooltipRect.width) / 2;
-    let top = cardRect.top - tooltipRect.height - 10;
-    
-    // Keep within viewport
-    left = Math.max(10, Math.min(left, window.innerWidth - tooltipRect.width - 10));
-    top = Math.max(10, Math.min(top, window.innerHeight - tooltipRect.height - 10));
-    
+    let top  = cardRect.top - tooltipRect.height - 10;
+
+    left = Math.max(10, Math.min(left, window.innerWidth  - tooltipRect.width  - 10));
+    top  = Math.max(10, Math.min(top,  window.innerHeight - tooltipRect.height - 10));
+
     tooltip.style.left = `${left}px`;
-    tooltip.style.top = `${top}px`;
-    
-    // Fade in
-    requestAnimationFrame(() => {
-        tooltip.style.opacity = "1";
-    });
-    
-    // Remove on mouseleave
+    tooltip.style.top  = `${top}px`;
+
+    requestAnimationFrame(() => { tooltip.style.opacity = "1"; });
+
     const removeTooltip = () => {
         tooltip.style.opacity = "0";
         setTimeout(() => tooltip.remove(), 200);
         cardElement.removeEventListener("mouseleave", removeTooltip);
     };
-    
     cardElement.addEventListener("mouseleave", removeTooltip);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(removeTooltip, 5000);
+    setTimeout(removeTooltip, 4000);
 }
 
 function attachHoverEvents(cardEl, card) {
@@ -195,30 +207,37 @@ function attachHoverEvents(cardEl, card) {
     cardEl.addEventListener("dblclick", async (e) => {
         e.stopPropagation();
         e.preventDefault();
-        
-        // Check if fancy display is enabled
+
+        // ── Закрытые карты не раскрываем ──────────────────────────────
+        const isFaceDown = card?.face === null || cardEl.dataset.isFaceDown === "1";
+        if (isFaceDown) {
+            // Мягко намекаем игроку что смотреть пока нечего
+            ui.notifications.info("🙈 Эта карта закрыта — она раскроется при розыгрыше.");
+            return;
+        }
+
+        // Проверяем настройку
         if (!Utils.getSettingSafe("enableFancyDisplay", true)) {
             console.log(`[${MODULE_ID}] Fancy display is disabled`);
             return;
         }
-        
-        // Get card data
+
+        // Получаем данные карты
         const cardId = cardEl.dataset.cardId;
-        const hand = pokerHandGlobalState.hand;
-        
+        const hand   = pokerHandGlobalState.hand;
         if (!cardId || !hand) return;
-        
-        const card = hand.cards.get(cardId);
-        if (!card) {
+
+        const cardObj = hand.cards.get(cardId);
+        if (!cardObj) {
             console.warn(`[${MODULE_ID}] Card not found: ${cardId}`);
             return;
         }
-        
-        // Show fancy display
-        await CardSystem.displayCardFancy(card, {
-            faceDown: false,
+
+        // Показываем FancyDisplay
+        await CardSystem.displayCardFancy(cardObj, {
+            faceDown:       false,
             dramaticReveal: false,
-            share: false
+            share:          false,
         });
     });
 
